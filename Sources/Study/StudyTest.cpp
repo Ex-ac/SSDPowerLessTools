@@ -1,4 +1,8 @@
-#define _GNU_SOURCE
+
+#ifndef _GNU_SOURCE
+	#define _GNU_SOURCE
+#endif
+
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <stdint.h>
@@ -9,43 +13,26 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <gtest/gtest.h>
 
 
 #define INIT_DATA		false
 #define SECTOR_SIZE		(512)
 #define BUFFER_SIZE		(128 * 1024)
-#define MAX_SECTOR_NUM		((uint64_t)(20 * 1024 * 1024 * 2))
+#define MAX_SECTOR_NUM		((uint64_t)(6 * 1024 * 1024 * 2))
 
-// inline int io_setup(unsigned nr, aio_context_t *ctxp) 
-// { 
-//     return syscall(__NR_io_setup, nr, ctxp); 
-// } 
+#define FAILED()		ASSERT_EQ(0, 1)
 
-// inline int io_destroy(aio_context_t ctx) 
-// { 
-// 	return syscall(__NR_io_destroy, ctx); 
-// } 
-
-// inline int io_submit(aio_context_t ctx, long nr, struct iocb **iocbpp) 
-// { 
-// 	return syscall(__NR_io_submit, ctx, nr, iocbpp); 
-// }
-
-// inline int io_getevents(aio_context_t ctx, long min_nr, long max_nr, struct io_event *events, struct timespec *timeout) 
-// { 
-// 	return syscall(__NR_io_getevents, ctx, min_nr, max_nr, events, timeout);
-// } 
-
-int main(int argc, char **argv)
+TEST(StudyTest, BaseTest)
 {
 	int ret;
-	
-	int fd = open("/dev/sda", O_RDWR | O_DIRECT, S_IRWXU);
+
+	int fd = open("test.bin", O_RDWR | O_CREAT | O_DIRECT, S_IRWXU);
 
 	if (fd < 0)
 	{
 		perror("open file failed");
-		return ret;
+		FAILED();
 	}
 
 	io_context_t aio_context = 0;
@@ -54,7 +41,7 @@ int main(int argc, char **argv)
 	if (ret < 0)
 	{
 		perror("io_setup error aaa");
-		return ret;
+		FAILED();
 	}
 
 	struct iocb io_control_block;
@@ -65,10 +52,10 @@ int main(int argc, char **argv)
 	if (posix_memalign(&buffer, SECTOR_SIZE, BUFFER_SIZE))
 	{
 		perror("posix_memalign");
-		return 5;
+		FAILED();
 	}
 
-	uint32_t *p_lba_data = (uint32_t *)(buffer);
+	uint64_t *p_lba_data = (uint64_t *)(buffer);
 
 #if (INIT_DATA)
 	memset(data, 0xFF, 128 * 1024);
@@ -76,29 +63,34 @@ int main(int argc, char **argv)
 	memset(buffer, 0x5A, BUFFER_SIZE);
 #endif
 
-	int start_lba = MAX_SECTOR_NUM;
-
+	unsigned int start_lba = 0;
 
 	p_io_control_blocks[0] = &io_control_block;
-
+	long long offset;
 	int count = 0;
-	do 
+	do
 	{
-		io_prep_pwrite(&io_control_block, fd, buffer, BUFFER_SIZE, start_lba * SECTOR_SIZE);
+
+		offset = start_lba * SECTOR_SIZE;
+		*p_lba_data = (uint64_t)(start_lba);
+		io_prep_pwrite(&io_control_block, fd, buffer, BUFFER_SIZE, offset);
 
 		ret = io_submit(aio_context, 1, p_io_control_blocks);
 
 		if (ret < 0)
 		{
-			fprintf(stderr, "IO.SUBMIT.ERR %d\n", ret);
-			return ret;
+			fprintf(stderr, "IO.SUBMIT.ERR %d %lld/%ld\n", ret, io_control_block.u.c.offset, io_control_block.u.c.nbytes);
+			lseek(fd, 0, SEEK_SET);
+			memset(buffer, 0xFF, BUFFER_SIZE);
+			write(fd, buffer, BUFFER_SIZE);
+			FAILED();
 		}
 
 		ret = io_getevents(aio_context, 1, 1, io_events, NULL);
 		if (ret < 0)
 		{
 			perror("io_getevents error");
-			return ret;
+			FAILED();
 		}
 
 		fprintf(stdout, "IO.STAT %d %d %ld/%ld\n", count, start_lba, io_events[0].res, io_events[0].res2);
@@ -109,16 +101,16 @@ int main(int argc, char **argv)
 			break;
 		}
 
-		start_lba += 256000;
-		
-		// if (start_lba >= MAX_SECTOR_NUM)
-		// {
-		// 	start_lba = 0;
-		// }
+		start_lba += BUFFER_SIZE / SECTOR_SIZE;
 
-		count ++;
+		if (start_lba >= MAX_SECTOR_NUM)
+		{
+			start_lba = 0;
+		}
+
+		count++;
 		// usleep(10);
-		if (count == (20 * 1024 * 1024 / 128))
+		if (count == 10 * (MAX_SECTOR_NUM / (BUFFER_SIZE / SECTOR_SIZE)))
 		{
 			break;
 		}
@@ -128,8 +120,10 @@ int main(int argc, char **argv)
 	if (ret < 0)
 	{
 		perror("io_destroy error");
-		return ret;
+		FAILED();
 	}
-	return 0;
 
+	close(fd);
+
+	EXPECT_EQ(1, 1);
 }

@@ -1,8 +1,9 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 int main(int argc, char argv[])
 {
-	
-	return;
+	fprintf(stdout, "nothing\n");	
+	return 0;
 }

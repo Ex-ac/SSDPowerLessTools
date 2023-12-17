@@ -1,15 +1,15 @@
 cmake_minimum_required(VERSION 3.16)
 
-set(PROJECT_NAME SSDIoTest)
-set(ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+set(PorojectName SSDIoTest)
+set(SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/Sources)
 
-project(${PROJECT_NAME})
+project(${PorojectName})
 
+add_subdirectory(${SOURCE_DIR}/Study)
+add_subdirectory(${SOURCE_DIR}/Disk)
 
-# add_subdirectory(Study)
-
-add_executable(${PROJECT_NAME} 
-	${ROOT_PATH}/Study/LearnAio.c
+add_executable(${PorojectName} 
+	${SOURCE_DIR}/main.c
 )
 
-target_link_libraries(${PROJECT_NAME} aio)
+target_link_libraries(${PorojectName} aio)

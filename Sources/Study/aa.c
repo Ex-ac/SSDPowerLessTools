@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 		return 2;
 	}
 
-	fd = open("/dev/sdb", O_RDWR | O_DIRECT, 0x644);
+	fd = open("/dev/sdb", O_RDWR | O_DIRECT, S_IRWXU);
 	if (fd == -1)
 	{
 		perror("open");
