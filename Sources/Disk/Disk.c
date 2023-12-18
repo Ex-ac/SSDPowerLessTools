@@ -57,8 +57,16 @@ Disk_t *Disk_Create(const char *filePath, const char *verifyFilePath, uint64_t m
 	}
 	else
 	{
-		char *pStart = strrchr(filePath, '/');
-		pStart += 1;
+		const char *pStart = strrchr(filePath, '/');
+		if (pStart == NULL)
+		{
+			pStart = filePath;
+		}
+		else
+		{
+			pStart += 1;
+		}
+
 		strcpy(pDisk->verifyFilePath, pStart);
 		strcpy(pDisk->verifyFilePath + strlen(pStart), cVerifyExpendName);
 	}
@@ -107,23 +115,7 @@ Disk_t *Disk_Create(const char *filePath, const char *verifyFilePath, uint64_t m
 
 	if (!indicateVerifyPath)
 	{
-		int pageNum = pDisk->verifyFileSize / getpagesize();
-	
-
-		LbaData_t *pLbaData = (LbaData_t*)(pDisk->pVerifyDataBaseAddr);
-
-		for (int i = 0; i < getpagesize() / sizeof(LbaData_t); ++i)
-		{
-			pLbaData->all = cNoInitLbaData.all;
-			pLbaData ++;
-		}
-
-		void *pDest;
-		for (int i = 1; i < pageNum; ++i)
-		{
-			pDest = pDisk->pVerifyDataBaseAddr + i * getpagesize();
-			memcpy(pDest, (void *)(pDisk->pVerifyDataBaseAddr), getpagesize());
-		}
+		Disk_VerifyFileDeInit(pDisk);
 	}
 	
 
@@ -136,6 +128,42 @@ ErrorOut:
 	return NULL;
 }
 
+
+void Disk_VerifyFileDeInit(Disk_t *pDisk)
+{
+	if (pDisk == NULL)
+	{
+		return;
+	}
+
+	int pageNum = pDisk->verifyFileSize / getpagesize();
+
+	LbaData_t *pLbaData = (LbaData_t *)(pDisk->pVerifyDataBaseAddr);
+
+	for (int i = 0; i < getpagesize() / sizeof(LbaData_t); ++i)
+	{
+		pLbaData->all = cNoInitLbaData.all;
+		pLbaData++;
+	}
+
+	void *pDest;
+	for (int i = 1; i < pageNum; ++i)
+	{
+		pDest = pDisk->pVerifyDataBaseAddr + i * getpagesize();
+		memcpy(pDest, (void *)(pDisk->pVerifyDataBaseAddr), getpagesize());
+	}
+	fprintf(stdout, "Verify file Deinit success\n");
+}
+
+void *Disk_GetLbaVerifyDataAddr(const Disk_t *pDisk, uint64_t lba)
+{
+	assert(lba < pDisk->maxSectorCount);
+	if (pDisk == NULL || pDisk->pVerifyDataBaseAddr == MAP_FAILED)
+	{
+		return NULL;
+	}
+	return pDisk->pVerifyDataBaseAddr + lba * sizeof(LbaData_t);
+}
 
 void Disk_Destroy(Disk_t *pDisk)
 {

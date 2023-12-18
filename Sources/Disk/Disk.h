@@ -23,6 +23,7 @@ typedef struct Disk
 } Disk_t;
 
 
+
 typedef enum LbaStatue
 {
 	cLbaStatue_NoInit = 0,		// mean's this lba not be initialized
@@ -45,6 +46,14 @@ typedef union LbaData
 
 Disk_t *Disk_Create(const char *filePath, const char *verifyFilePath, uint64_t maxSectorCount);
 void Disk_Destroy(Disk_t *pDisk);
+void Disk_VerifyFileDeInit(Disk_t *pDisk);
+void *Disk_GetLbaVerifyDataAddr(const Disk_t *pDisk, uint64_t lba);
+
+
+static inline uint64_t Disk_GetMaxSectorCount(const Disk_t *pDisk)
+{
+	return pDisk->maxSectorCount;
+}
 
 
 #ifdef __cplusplus
