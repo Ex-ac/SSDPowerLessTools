@@ -16,4 +16,4 @@ set(${ModuleName}Sources
 add_library(${ModuleName} STATIC)
 target_sources(${ModuleName} PUBLIC ${${ModuleName}Sources})
 target_include_directories(${ModuleName} PUBLIC ${${ModuleName}Headers})
-target_include_directories(${ModuleName} PUBLIC ${ShareHeaders})
+target_link_libraries(${ModuleName} Share)
