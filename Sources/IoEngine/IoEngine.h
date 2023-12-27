@@ -6,6 +6,7 @@ extern "C" {
 
 #include "SimpleFifo.h"
 #include <pthread.h>
+#include <semaphore.h>
 
 
 
@@ -16,9 +17,19 @@ typedef enum IoEngineType
 } IoEngineType_t;
 
 
+typedef struct RequestThreadContext
+{
+	sem_t semaphore;		// when queue empty to not empty will post
+	void *requestQueue;		// to save the usr request
+	pthread_t thread;
+	bool abort				: 1;	// return all the requests to completed queue
+	bool exit				: 1;	// do abort and exit the thread
+} RequestThreadContext_t;
+
 typedef struct IoEngine
 {
 	bool exit;
+	sem_t requestQueueSemaphore,
 	void *requestQueue;
 	void *completedQueue;
 	uint_t ioQueueDepth;

@@ -8,6 +8,7 @@
 		"atomic": "c",
 		"*.tcc": "c",
 		"sstream": "c",
-		"limits.h": "c"
+		"limits.h": "c",
+		"semaphore.h": "c"
 	}
 }
