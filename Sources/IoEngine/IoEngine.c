@@ -32,14 +32,17 @@
 //-----------------------------------------------------------------------------
 //  Constants definitions:
 //-----------------------------------------------------------------------------
-
+/**
+ * @brief request thread context create statue
+ * 
+ */
 typedef enum RequestThreadStatue
 {
-	cRequestThreadStatue_Instance = 0x00,
-	cRequestThreadStatue_Semaphore,
-	cRequestThreadStatue_Queue,
-	cRequestThreadStatue_Thread,
-	cRequestThreadStatue_Completed,
+	cRequestThreadStatue_Instance = 0x00,	// alloc the instance
+	cRequestThreadStatue_Semaphore,			// init the semaphore
+	cRequestThreadStatue_Queue,				// init the queue
+	cRequestThreadStatue_Thread,			// create the thread
+	cRequestThreadStatue_Completed,			//	create completed
 } RequestThreadStatue_t;
 
 //-----------------------------------------------------------------------------
@@ -77,14 +80,58 @@ typedef struct RequestThreadContext
 	bool exit				: 1;	// do abort and exit the thread
 } RequestThreadContext_t;
 
+
+typedef struct CompletedThreadContext
+{
+
+} CompletedThreadContext_t;
+
 //-----------------------------------------------------------------------------
 //  Private function proto-type definitions:
 //-----------------------------------------------------------------------------
+/**
+ * @brief create request thread context
+ * 
+ * @param queueDepth 
+ * @return when create success, return the context pointer, else return NULL
+ */
 static RequestThreadContext_t *RequestThreadContext_Creat(uint_t queueDepth);
+
+/**
+ * @brief destroy the request thread context by statue
+ * 
+ * @param pContext 
+ * @param statue create statue
+ */
 static void RequestThread_Destroy(RequestThreadContext_t *pContext, int statue);
+
+/**
+ * @brief request thread processor function
+ * 
+ * @param param pointer to RequestThreadContext_t instance
+ * @return unless
+ */
 static void *RequestThread_Processor(void *param);
+
+/**
+ * @brief exit request thread 
+ * 
+ * @param pContext 
+ */
 static void RequestThread_Exit(RequestThreadContext_t *pContext);
+
+/**
+ * @brief abort all the request in the request queue
+ * 
+ * @param pContext 
+ */
 static void RequestThread_Abort(RequestThreadContext_t *pContext);
+
+/**
+ * @brief when queue not empty, notify the request thread wake up
+ * 
+ * @param pQueue 
+ */
 static void RequestThread_Notify(Queue_t *pQueue);
 //-----------------------------------------------------------------------------
 //  Data declaration: Private or Public
@@ -300,7 +347,7 @@ bool IoEngine_Submit(IoEngine_t *pIoEngine, const CommonCommand_t *pCommand)
 	RequestThreadContext_t *pContext = pIoEngine->requestThreadContext;
 	Queue_t *pQueue = &pContext->requestQueue;
 	// abort always return false
-	if (pContext->abort)
+	if (pContext->abort || pContext->exit)
 	{
 		return false;
 	}
@@ -309,7 +356,7 @@ bool IoEngine_Submit(IoEngine_t *pIoEngine, const CommonCommand_t *pCommand)
 	return Queue_Push(pQueue, (void *)pCommand);
 }
 
-uint_t IoEngine_RequestQueueCount(IoEngine_t *pIoEngine)
+uint_t IoEngine_RequestQueueFreeCount(IoEngine_t *pIoEngine)
 {
 	if (pIoEngine == NULL)
 	{

@@ -32,7 +32,7 @@ TEST(IoEngineTest, IoRequest)
 	IoEngine_t *pIoEngine = IoEngine_Create(requestCount);
 	ASSERT_NE((void *)(pIoEngine), nullptr);
 
-	ASSERT_EQ(IoEngine_RequestQueueCount(pIoEngine), requestCount - 1);
+	ASSERT_EQ(IoEngine_RequestQueueFreeCount(pIoEngine), requestCount - 1);
 	CommonCommand_t command;
 	for (int i = 0; i < 1024; i++)
 	{

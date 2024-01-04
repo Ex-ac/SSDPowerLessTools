@@ -64,14 +64,63 @@ typedef struct IoEngine
 //  Public interface functions:
 //-----------------------------------------------------------------------------
 
+/**
+ * @brief create io engine
+ * 
+ * @param ioQueueDepth request queue depth
+ * @return when create success, return the io engine pointer, else return NULL
+ */
 IoEngine_t *IoEngine_Create(uint_t ioQueueDepth);
+
+
 void IoEngine_Run(IoEngine_t *pIoEngine);
+
+/**
+ * @brief destroy io engine, when destroy, will abort the request queue
+ * 
+ * @param pIoEngine 
+ */
 void IoEngine_Destroy(IoEngine_t *pIoEngine);
 
+/**
+ * @brief submit io command to io engine
+ * 
+ * @param pIoEngine 
+ * @param pCommand 
+ * @return true io command submit success
+ * @return false io command submit fail, queue is full or abort
+ */
 bool IoEngine_Submit(IoEngine_t *pIoEngine, const CommonCommand_t *pCommand);
-uint_t IoEngine_RequestQueueCount(IoEngine_t *pIoEngine);
+
+/**
+ * @brief get the request queue free count
+ * 
+ * @param pIoEngine 
+ * @return free count
+ */
+uint_t IoEngine_RequestQueueFreeCount(IoEngine_t *pIoEngine);
+
+/**
+ * @brief abort the request queue, incomplete io command will return to completed queue
+ * 
+ * @param pIoEngine 
+ */
 void IoEngine_AbortRequestQueue(IoEngine_t *pIoEngine);
+
+/**
+ * @brief check the request queue is abort
+ * 
+ * @param pIoEngine 
+ * @return true request queue is abort
+ * @return false request queue is not abort
+ */
 bool IoEngine_RequestQueueIsAbort(IoEngine_t *pIoEngine);
+
+/**
+ * @brief abort all the request queue, incomplete io command will return to completed queue, when request is empty, can send new request again
+ * 
+ * @param pIoEngine 
+ */
 void IoEngine_ResetRequestQueue(IoEngine_t *pIoEngine);
 
 //-----------------------------------------------------------------------------
