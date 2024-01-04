@@ -48,7 +48,8 @@ static bool EntryNumCheck(uint_t entryNum);
 static bool EntryNumCheck(uint_t entryNum)
 {
 	int leftOneNum = Bit_CountTailZero(entryNum);
-	entryNum >= (leftOneNum + 1);
+	entryNum >>= (leftOneNum + 1);
+	DebugPrint("entryNum = %d, leftOneNum = %d", entryNum, leftOneNum);
 	return entryNum == 0x00;
 }
 
@@ -65,4 +66,29 @@ void SimpleFifo_Init(SimpleFifo_t *pFifo, uint_t entryNum, uint_t entrySize, voi
 	pFifo->pEntry = pEntry;
 	pFifo->frontIndex = 0;
 	pFifo->rearIndex = 0;
+}
+
+SimpleFifo_t *SimpleFifo_Create(uint_t entryNum, uint_t entrySize)
+{
+	ASSERT(EntryNumCheck(entryNum));
+	SimpleFifo_t *pFifo = (SimpleFifo_t *)malloc(sizeof(SimpleFifo_t));
+	if (pFifo != NULL)
+	{
+		memset(pFifo, 0, sizeof(SimpleFifo_t));
+		pFifo->entrySize = entrySize;
+		pFifo->mask = entryNum - 1;
+		pFifo->pEntry = malloc(entryNum * entrySize);
+		if (pFifo->pEntry == NULL)
+		{
+			free(pFifo);
+			pFifo = NULL;
+		}
+	}
+	return pFifo;
+}
+
+void SimpleFifo_Destroy(SimpleFifo_t *pFifo)
+{
+	free(pFifo->pEntry);
+	free(pFifo);
 }

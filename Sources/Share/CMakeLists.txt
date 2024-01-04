@@ -8,6 +8,7 @@ set(${ModuleName}Headers
 
 set(${ModuleName}Sources
 	${CMAKE_CURRENT_LIST_DIR}/SimpleFifo.c
+	${CMAKE_CURRENT_LIST_DIR}/Queue.c
 )
 
 

@@ -5,7 +5,7 @@
 //  Include files:
 //-----------------------------------------------------------------------------
 #include "Disk.h"
-#include "debug.h"
+#include "Debug.h"
 #include <string.h>
 #include <assert.h>
 #include <fcntl.h>

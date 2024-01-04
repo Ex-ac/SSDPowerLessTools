@@ -11,7 +11,9 @@ extern "C" {
 //-----------------------------------------------------------------------------
 #include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h>
 #include <assert.h>
+#include <unistd.h>
 
 //-----------------------------------------------------------------------------
 //  Constant definitions:
@@ -21,8 +23,15 @@ extern "C" {
 //-----------------------------------------------------------------------------
 //  Macros definitions:
 //-----------------------------------------------------------------------------
+#ifndef OFFSET_OF
+#define OFFSET_OF(TYPE, MEMBER) ((size_t) &((TYPE*)0)->MEMBER)
+#endif
 
-
+#ifndef CONTAINER_OF
+#define CONTAINER_OF(ptr, type, member) ({          \
+        const typeof(((type *)0)->member)*__mptr = (ptr);    \
+    (type *)((char *)__mptr - offsetof(type, member)); })
+#endif
 //-----------------------------------------------------------------------------
 //  Data type definitions: typedef, struct or class
 //-----------------------------------------------------------------------------

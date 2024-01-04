@@ -51,39 +51,39 @@ extern "C" {
 
 
 #pragma always_inline
-uint_t __BIC(uint_t x, uint_t bit)
+inline static uint_t __BIC(uint_t x, uint_t bit)
 {
 	return (x & (~BIT(bit)));
 }
 
 
-
-uint_t Bit_CountLeadingZero(uint_t data)
+#pragma always_inline
+inline static uint_t Bit_CountLeadingZero(uint_t data)
 {
 	return __builtin_clz(data);
 }
 
 #pragma always_inline
-uint_t Bit_CountTailZero(uint_t data)
+inline static uint_t Bit_CountTailZero(uint_t data)
 {
 	return __builtin_ctz(data);
 }
 
 #pragma always_inline
-uint_t Bit_CountLeadingOne(uint_t data)
+inline static uint_t Bit_CountLeadingOne(uint_t data)
 {
 	return __builtin_clz(~data);
 }
 
 #pragma always_inline
-uint_t Bit_CountTailOne(uint_t data)
+inline static uint_t Bit_CountTailOne(uint_t data)
 {
 	return __builtin_ctz(~data);
 }
 
 
 #pragma always_inline
-uint_t Bit_CountBit(uint_t x)
+inline static uint_t Bit_CountBit(uint_t x)
 {
 	uint_t xx = x;
 	xx = xx - ((xx >> 1) & 0x55555555);
@@ -95,7 +95,7 @@ uint_t Bit_CountBit(uint_t x)
 
 
 #pragma always_inline
-uint_t Bit_GetBitmap(const uint_t *pData, uint_t offset)
+inline static uint_t Bit_GetBitmap(const uint_t *pData, uint_t offset)
 {
 	uint_t ret = offset / 8;
 	offset &= 0x7;
