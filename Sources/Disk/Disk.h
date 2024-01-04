@@ -1,14 +1,44 @@
+
 #pragma once
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+//-----------------------------------------------------------------------------
+//  Include files:
+//-----------------------------------------------------------------------------
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <limits.h>
+
+
+//-----------------------------------------------------------------------------
+//  Constant definitions:
+//-----------------------------------------------------------------------------
+
+
+typedef enum LbaStatue
+{
+	cLbaStatue_NoInit = 0,		// mean's this lba not be initialized
+	cLbaStatue_Invalid,			// mean's this lba be trim or formate
+	cLbaStatue_Valid,			// mean's this lba be this io engine write, the data pattern has certain pattern
+} LbaStatue_t;
+
+//-----------------------------------------------------------------------------
+//  Macros definitions:
+//-----------------------------------------------------------------------------
+
+
+//-----------------------------------------------------------------------------
+//  Data type definitions: typedef, struct or class
+//-----------------------------------------------------------------------------
 
 typedef struct Disk
 {
@@ -22,15 +52,6 @@ typedef struct Disk
 	uint64_t maxSectorCount;
 } Disk_t;
 
-
-
-typedef enum LbaStatue
-{
-	cLbaStatue_NoInit = 0,		// mean's this lba not be initialized
-	cLbaStatue_Invalid,			// mean's this lba be trim or formate
-	cLbaStatue_Valid,			// mean's this lba be this io engine write, the data pattern has certain pattern
-} LbaStatue_t;
-
 typedef union LbaData
 {
 	uint32_t all;
@@ -42,12 +63,19 @@ typedef union LbaData
 	};
 } LbaData_t;
 
+//-----------------------------------------------------------------------------
+//  Public interface functions:
+//-----------------------------------------------------------------------------
 
 
 Disk_t *Disk_Create(const char *filePath, const char *verifyFilePath, uint64_t maxSectorCount);
 void Disk_Destroy(Disk_t *pDisk);
 void Disk_VerifyFileDeInit(Disk_t *pDisk);
 void *Disk_GetLbaVerifyDataAddr(const Disk_t *pDisk, uint64_t lba);
+
+//-----------------------------------------------------------------------------
+//  Inline functions
+//-----------------------------------------------------------------------------
 
 
 static inline uint64_t Disk_GetMaxSectorCount(const Disk_t *pDisk)
@@ -59,3 +87,4 @@ static inline uint64_t Disk_GetMaxSectorCount(const Disk_t *pDisk)
 #ifdef __cplusplus
 }
 #endif
+

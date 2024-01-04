@@ -9,6 +9,12 @@
 		"*.tcc": "c",
 		"sstream": "c",
 		"limits.h": "c",
-		"semaphore.h": "c"
+		"semaphore.h": "c",
+		"ioengine.h": "c",
+		"memory.h": "c",
+		"pthread.h": "c",
+		"disk.h": "c",
+		"simplefifo.h": "c",
+		"stdint.h": "c"
 	}
 }

@@ -5,7 +5,7 @@
 TEST(DiskTest, BaseTest)
 {
 	printf("create disk without verify file\n");
-	Disk_t *pDisk = Disk_Create("test.bin", NULL, 5 * 1024 * 1024 * 2);
+	Disk_t *pDisk = Disk_Create("./test.bin", NULL, 5 * 1024 * 1024 * 2);
 	ASSERT_NE((void *)(pDisk), nullptr);
 
 	if (pDisk != NULL)
