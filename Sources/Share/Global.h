@@ -1,13 +1,3 @@
-/**
- * @file Debug.h
- * @author your name (you@domain.com)
- * @brief 
- * @version 0.1
- * @date 2024-01-04
- * 
- * @copyright Copyright (c) 2024
- * 
- */
 #pragma once
 
 
@@ -19,12 +9,20 @@ extern "C" {
 //-----------------------------------------------------------------------------
 //  Include files:
 //-----------------------------------------------------------------------------
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stddef.h>
 #include <assert.h>
+#include <unistd.h>
 
-// WARNING: don't include Global.h
+#include "Debug.h"
+#include "Type.h"
+
 
 //-----------------------------------------------------------------------------
 //  Constant definitions:
@@ -34,11 +32,7 @@ extern "C" {
 //-----------------------------------------------------------------------------
 //  Macros definitions:
 //-----------------------------------------------------------------------------
-#define DebugPrint(fmt, argc...)	\
-	fprintf(stdout, "%s:" fmt "\n", __FUNCTION__, ##argc)
 
-#define ASSERT(x)			assert(x)
-#define ASSERT_DEBUG(x)		assert(x)
 
 //-----------------------------------------------------------------------------
 //  Data type definitions: typedef, struct or class

@@ -13,7 +13,8 @@
 //-----------------------------------------------------------------------------
 //  Include files:
 //-----------------------------------------------------------------------------
-
+#define _GNU_SOURCE
+#define __STDC_FORMAT_MACROS
 
 #include "IoEngine.h"
 #include <pthread.h>
@@ -23,6 +24,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <string.h>
+#include <sys/epoll.h>
 
 
 #include "SimpleFifo.h"
@@ -45,6 +47,16 @@ typedef enum RequestThreadStatue
 	cRequestThreadStatue_Completed,			//	create completed
 } RequestThreadStatue_t;
 
+
+typedef enum CompletedThreadStatue
+{
+	cCompletedThreadStatue_Instance = 0x00,	// alloc the instance
+	cCompletedThreadStatue_Queue,				// init the queue
+	cCompletedThreadStatue_Epoll,				// init the epoll
+	cCompletedThreadStatue_Thread,			// create the thread
+	cCompletedThreadStatue_Completed,			//	create completed
+} CompletedThreadStatue_t;
+
 //-----------------------------------------------------------------------------
 //  Macros definitions:
 //-----------------------------------------------------------------------------
@@ -55,13 +67,7 @@ typedef enum RequestThreadStatue
 // using the unsigned int to save addr
 #define Uint			uint_t
 
-SIMPLE_FIFO_TYPE_DEFINE_GEN(Uint);
-SIMPLE_FIFO_TYPE_INIT_GEN(Uint);
-SIMPLE_FIFO_TYPE_COUNT_GEN(Uint);
-SIMPLE_FIFO_TYPE_IS_FULL_GEN(Uint);
-SIMPLE_FIFO_TYPE_IS_EMPTY_GEN(Uint);
-SIMPLE_FIFO_TYPE_POP_GEN(Uint);
-SIMPLE_FIFO_TYPE_PUSH_GEN(Uint);
+
 
 //-----------------------------------------------------------------------------
 //  Data type definitions: typedef, struct or class
@@ -74,16 +80,25 @@ SIMPLE_FIFO_TYPE_PUSH_GEN(Uint);
 typedef struct RequestThreadContext
 {
 	sem_t semaphore;		// when queue empty to not empty will post
-	Queue_t requestQueue;		// to save the usr request
+	CommandIdFifo_t requestQueue;	// to save the usr request
 	pthread_t thread;
 	bool abort				: 1;	// return all the requests to completed queue
 	bool exit				: 1;	// do abort and exit the thread
 } RequestThreadContext_t;
 
 
+/**
+ * @brief io command completed queue process thread context
+ * 
+ */
 typedef struct CompletedThreadContext
 {
 
+	CommandIdFifo_t completedQueue;		// to save the usr request
+	pthread_t thread;
+	struct epoll_event epollEvent;
+	int epollFileHandler;
+	bool exit				: 1;	// when completed queue empty, exit the thread
 } CompletedThreadContext_t;
 
 //-----------------------------------------------------------------------------
@@ -128,11 +143,22 @@ static void RequestThread_Exit(RequestThreadContext_t *pContext);
 static void RequestThread_Abort(RequestThreadContext_t *pContext);
 
 /**
- * @brief when queue not empty, notify the request thread wake up
+ * @brief notify the request thread wake up
  * 
- * @param pQueue 
+ * @param pContext
  */
-static void RequestThread_Notify(Queue_t *pQueue);
+static void RequestThread_Notify(RequestThreadContext_t *pContext);
+
+
+
+static CompletedThreadContext_t *CompletedThreadContext_Creat(uint_t queueDepth);
+
+static void CompletedThreadContext_Destroy(CompletedThreadContext_t *pContext, int statue);
+
+static void CompletedThread_Exit(CompletedThreadContext_t *pContext);
+
+static void *COmpletedThread_Processor(void *param);
+
 //-----------------------------------------------------------------------------
 //  Data declaration: Private or Public
 //-----------------------------------------------------------------------------
@@ -159,6 +185,7 @@ static void *RequestThread_Processor(void *param)
 	DebugPrint("start");
 
 	pContext->abort = false;
+	CommandId_t commandId;
 	while (true)
 	{
 		DebugPrint("wait semaphore");
@@ -166,9 +193,11 @@ static void *RequestThread_Processor(void *param)
 		DebugPrint("get semaphore");
 		
 		
-		while ((count != 0) || (count = Queue_Count(&pContext->requestQueue)) != 0)
+		while ((count != 0) || (count = CommandIdFifo_Count(&pContext->requestQueue)) != 0)
 		{
-			CommonCommand_t *pCommand = Queue_Peek(&pContext->requestQueue);
+			bool ok = CommandIdFifo_Pop(&pContext->requestQueue, &commandId);
+			ASSERT_DEBUG(ok);
+
 			if (pContext->exit || pContext->abort)
 			{
 				// move to completed queue
@@ -178,8 +207,7 @@ static void *RequestThread_Processor(void *param)
 			{
 				// do the request
 			}
-			Queue_Remove(&pContext->requestQueue);
-			DebugPrint("process request %p command id: %d", pCommand, pCommand->config.commandId);
+			DebugPrint("process request. command id: %d", commandId);
 
 			usleep(10000);
 			count --;
@@ -214,15 +242,15 @@ static RequestThreadContext_t *RequestThreadContext_Creat(uint_t queueDepth)
 	status ++;
 
 	// create queue
-	SimpleFifo_t *pSimpleFifo = SimpleFifo_Create(queueDepth, sizeof(CommonCommand_t));
-	if (pSimpleFifo == NULL)
+	void *pEntryAddr = malloc(sizeof(uint_t) * queueDepth);
+
+	if (pEntryAddr == NULL)
 	{
 		goto Failed;
 	}
-	Queue_Init(&pContext->requestQueue, pSimpleFifo, &cSimpleFifoOperator);
+
+	CommandIdFifo_Init(&pContext->requestQueue, queueDepth, pEntryAddr);
 	status ++;
-	
-	Queue_RegisterEventHandler(&pContext->requestQueue, cQueueEventType_ChangeToNotEmpty, RequestThread_Notify);
 
 	pthread_create(&pContext->thread, NULL, RequestThread_Processor, pContext);
 	status ++;
@@ -255,7 +283,7 @@ static void RequestThread_Destroy(RequestThreadContext_t *pContext, int statue)
 		
 		case cRequestThreadStatue_Thread:
 			// free(pContext->requestQueue);
-			SimpleFifo_Destroy(pContext->requestQueue.pInstance);
+			free(pContext->requestQueue.pEntry);
 
 		case cRequestThreadStatue_Queue:
 			//sem_destroy(&pContext->semaphore);
@@ -277,7 +305,7 @@ static void RequestThread_Exit(RequestThreadContext_t *pContext)
 {
 	DebugPrint("start");
 	pContext->exit = true;
-	RequestThread_Notify(&pContext->requestQueue);
+	RequestThread_Notify(pContext);
 	// abort all the request
 }
 
@@ -289,13 +317,26 @@ static void RequestThread_Abort(RequestThreadContext_t *pContext)
 	// abort all the request
 }
 
-static void RequestThread_Notify(Queue_t *pQueue)
+static void RequestThread_Notify(RequestThreadContext_t *pContext)
 {
-	DebugPrint("start");
-	RequestThreadContext_t *pContext = CONTAINER_OF(pQueue, RequestThreadContext_t, requestQueue);
-	// DebugPrint("Context %p/%p/%p", pContext, &pContext->requestQueue, pQueue);
+	DebugPrint("trigger");
 	sem_post(&pContext->semaphore);
 }
+
+
+
+
+static CompletedThreadContext_t *CompletedThreadContext_Creat(uint_t queueDepth)
+{
+
+}
+
+static void CompletedThreadContext_Destroy(CompletedThreadContext_t *pContext, int statue);
+
+static void CompletedThread_Exit(CompletedThreadContext_t *pContext);
+
+static void *COmpletedThread_Processor(void *param);
+
 
 //-----------------------------------------------------------------------------
 //  Public functions
@@ -336,16 +377,15 @@ void IoEngine_Destroy(IoEngine_t *pIoEngine)
 }
 
 
-bool IoEngine_Submit(IoEngine_t *pIoEngine, const CommonCommand_t *pCommand)
+bool IoEngine_Submit(IoEngine_t *pIoEngine, CommandId_t commandId)
 {
 	DebugPrint("start");
-	if (pIoEngine == NULL || pCommand == NULL)
+	if (pIoEngine == NULL)
 	{
 		return false;
 	}
 
 	RequestThreadContext_t *pContext = pIoEngine->requestThreadContext;
-	Queue_t *pQueue = &pContext->requestQueue;
 	// abort always return false
 	if (pContext->abort || pContext->exit)
 	{
@@ -353,7 +393,14 @@ bool IoEngine_Submit(IoEngine_t *pIoEngine, const CommonCommand_t *pCommand)
 	}
 
 	DebugPrint("push");
-	return Queue_Push(pQueue, (void *)pCommand);
+	bool notify = CommandIdFifo_IsEmpty(&pContext->requestQueue);
+	bool ret = CommandIdFifo_Push(&pContext->requestQueue, commandId);
+	if (notify)
+	{
+		DebugPrint("notify");
+		RequestThread_Notify(pContext);
+	}
+	return ret;
 }
 
 uint_t IoEngine_RequestQueueFreeCount(IoEngine_t *pIoEngine)
@@ -364,9 +411,7 @@ uint_t IoEngine_RequestQueueFreeCount(IoEngine_t *pIoEngine)
 	}
 
 	RequestThreadContext_t *pContext = pIoEngine->requestThreadContext;
-	Queue_t *pQueue = &pContext->requestQueue;
-	DebugPrint("%d", Queue_FreeCount(pQueue));
-	return pContext->abort ? 0 : Queue_FreeCount(pQueue);
+	return pContext->abort ? 0 : CommandIdFifo_FreeCount(&pContext->requestQueue);
 }
 
 
@@ -404,7 +449,7 @@ void IoEngine_ResetRequestQueue(IoEngine_t *pIoEngine)
 	RequestThreadContext_t *pContext = pIoEngine->requestThreadContext;
 	RequestThread_Abort(pContext);
 
-	while (Queue_Count(&pContext->requestQueue) != 0)
+	while (CommandIdFifo_IsEmpty(&pContext->requestQueue) == false)
 	{
 		// wait for abort
 		sleep(1);

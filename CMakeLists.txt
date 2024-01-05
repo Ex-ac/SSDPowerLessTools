@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.16)
 
 set(PorojectName SSDIoTest)
 set(SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/Sources)
-set(cmake_c_flags "${cmake_c_flags} -g -Wall -Werror -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-but-set-parameter -Wno-unused-parameter -Wno-unused-value -Wno-unused-label -Wno-unused-result -Wno-unused-local-typedefs -Wno-unused-macros -Wno-unused-const-variable -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-but-set-parameter -Wno-unused-parameter -Wno-unused-value -Wno-unused-label -Wno-unused-result -Wno-unused-local-typedefs -Wno-unused-macros -Wno-unused-const-variable")
-
+set(CMAKE_C_FLAGES "${CMAKE_C_FLAGES} -g -Wshadow -Wundef -Wno-pointer-arith")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wshadow -Wundef -Wno-pointer-arith")
 set(CMAKE_EXE_LINKER_FLAGS "-Wl,-Map=output.map")
 
 project(${PorojectName})

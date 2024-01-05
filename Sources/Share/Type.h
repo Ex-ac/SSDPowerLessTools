@@ -15,10 +15,15 @@ extern "C" {
 #include <assert.h>
 #include <unistd.h>
 
+#include "SimpleFifo.h"
+
+// WARNING: don't include Global.h
+
 //-----------------------------------------------------------------------------
 //  Constant definitions:
 //-----------------------------------------------------------------------------
 #define MAX_COMMON_COMMAND_SIZE		0x40
+#define cInvalidCommandId			__UINT32_MAX__
 
 //-----------------------------------------------------------------------------
 //  Macros definitions:
@@ -28,10 +33,13 @@ extern "C" {
 #endif
 
 #ifndef CONTAINER_OF
-#define CONTAINER_OF(ptr, type, member) ({          \
-        const typeof(((type *)0)->member)*__mptr = (ptr);    \
-    (type *)((char *)__mptr - offsetof(type, member)); })
+#define CONTAINER_OF(PTR, TYPE, MEMBER) ({          \
+        const typeof(((TYPE *)0)->MEMBER)*__mptr = (PTR);    \
+    (TYPE *)((char *)__mptr - offsetof(TYPE, MEMBER)); })
 #endif
+
+
+
 //-----------------------------------------------------------------------------
 //  Data type definitions: typedef, struct or class
 //-----------------------------------------------------------------------------
@@ -39,7 +47,7 @@ struct Disk_t;
 
 
 typedef unsigned int uint_t;
-
+typedef unsigned int CommandId_t;
 typedef enum CommandType
 {
 	cCommandType_Io = 0,
@@ -63,6 +71,15 @@ typedef enum IoType
 } IoType_t;
 
 
+typedef enum CommandStatus
+{
+	cCommandStatus_Success = 0,
+	cCommandStatus_Failed,
+	cCommandStatus_Abort,
+	cCommandStatus_Timeout,
+	cCommandStatus_Invalid,
+} CommandStatus_t;
+
 typedef struct IoRequest
 {
 	struct Disk_t *pDisk;
@@ -79,7 +96,8 @@ typedef union CommandCommandConfig
 	{
 		CommandType_t type		: 8;
 		uint8_t commandId;
-		uint64_t reserved		: 48;
+		CommandStatus_t status	: 8;
+		uint64_t reserved		: 40;
 	};
 	
 } CommandCommandConfig_t;
@@ -102,6 +120,16 @@ typedef struct CommandPack
 	uint_t count;
 	CommonCommand_t command[];
 } CommandPack_t;
+
+SIMPLE_FIFO_TYPE_DEFINE_GEN(CommandId_t, CommandIdFifo);
+SIMPLE_FIFO_TYPE_INIT_GEN(CommandId_t, CommandIdFifo);
+SIMPLE_FIFO_TYPE_COUNT_GEN(CommandId_t, CommandIdFifo);
+SIMPLE_FIFO_TYPE_FREE_COUNT_GEN(CommandId_t, CommandIdFifo);
+SIMPLE_FIFO_TYPE_IS_FULL_GEN(CommandId_t, CommandIdFifo);
+SIMPLE_FIFO_TYPE_IS_EMPTY_GEN(CommandId_t, CommandIdFifo);
+SIMPLE_FIFO_TYPE_POP_GEN(CommandId_t, CommandIdFifo);
+SIMPLE_FIFO_TYPE_PUSH_GEN(CommandId_t, CommandIdFifo);
+
 
 
 //-----------------------------------------------------------------------------

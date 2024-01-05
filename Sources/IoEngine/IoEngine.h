@@ -90,7 +90,7 @@ void IoEngine_Destroy(IoEngine_t *pIoEngine);
  * @return true io command submit success
  * @return false io command submit fail, queue is full or abort
  */
-bool IoEngine_Submit(IoEngine_t *pIoEngine, const CommonCommand_t *pCommand);
+bool IoEngine_Submit(IoEngine_t *pIoEngine, CommandId_t commandId);
 
 /**
  * @brief get the request queue free count

@@ -15,6 +15,15 @@
 		"pthread.h": "c",
 		"disk.h": "c",
 		"simplefifo.h": "c",
-		"stdint.h": "c"
+		"stdint.h": "c",
+		"queue.h": "c",
+		"type.h": "c",
+		"debug.h": "c",
+		"typeinfo": "c",
+		"stddef.h": "c",
+		"assert.h": "c",
+		"stdint-gcc.h": "c",
+		"types.h": "c",
+		"chrono": "c"
 	}
 }

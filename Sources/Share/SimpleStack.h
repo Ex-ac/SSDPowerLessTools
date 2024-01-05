@@ -11,7 +11,8 @@ extern "C" {
 //-----------------------------------------------------------------------------
 #include <stdint.h>
 #include <stdbool.h>
-#include "Type.h"
+
+// WARNING: for portable, don't include other header files
 #include "Debug.h"
 
 //-----------------------------------------------------------------------------
@@ -23,48 +24,48 @@ extern "C" {
 //  Macros definitions:
 //-----------------------------------------------------------------------------
 
-#define SIMPLE_STACK_DEFINE_GEN(TYPE) \
-typedef struct SimpleStack##TYPE      \
-{                                     \
-	uint_t totalCount;                \
-	uint_t insertIndex;               \
-	TYPE *pData;                      \
-} SimpleStack##TYPE##_t;
+#define SIMPLE_STACK_DEFINE_GEN(TYPE, NAME) \
+typedef struct NAME                         \
+{                                           \
+	unsigned int totalCount;                \
+	unsigned int insertIndex;               \
+	TYPE *pData;                            \
+} NAME##_t;
 
-#define SIMPLE_STACK_IS_FULL_GEN(TYPE)                                             \
-inline static bool SimpleStack##TYPE##_IsFull(const SimpleStack##TYPE##_t *pStack) \
-{                                                                                  \
-	return pStack->insertIndex == pStack->totalCount;                              \
+#define SIMPLE_STACK_IS_FULL_GEN(TYPE, NAME)             \
+inline static bool NAME##_IsFull(const NAME##_t *pStack) \
+{                                                        \
+	return pStack->insertIndex == pStack->totalCount;    \
 }
 
-#define SIMPLE_STACK_IS_EMPTY_GEN(TYPE)                                             \
-inline static bool SimpleStack##TYPE##_IsEmpty(const SimpleStack##TYPE##_t *pStack) \
-{                                                                                   \
-	return pStack->insertIndex == 0;                                                \
+#define SIMPLE_STACK_IS_EMPTY_GEN(TYPE, NAME)             \
+inline static bool NAME##_IsEmpty(const NAME##_t *pStack) \
+{                                                         \
+	return pStack->insertIndex == 0;                      \
 }
 
-#define SIMPLE_STACK_POP_GEN(TYPE)                                                     \
-inline static bool SimpleStack##TYPE##_Pop(SimpleStack##TYPE##_t *pStack, TYPE *pData) \
-{                                                                                      \
-	if (SimpleStack##TYPE##_IsEmpty(pStack))                                           \
-	{                                                                                  \
-		return false;                                                                  \
-	}                                                                                  \
-	pStack->insertIndex--;                                                             \
-	*pData = *(pStack->pData + pStack->insertIndex);                                   \
-	return true;                                                                       \
+#define SIMPLE_STACK_POP_GEN(TYPE, NAME)                     \
+inline static bool NAME##_Pop(NAME##_t *pStack, TYPE *pData) \
+{                                                            \
+	if (NAME##_IsEmpty(pStack))                              \
+	{                                                        \
+		return false;                                        \
+	}                                                        \
+	pStack->insertIndex--;                                   \
+	*pData = *(pStack->pData + pStack->insertIndex);         \
+	return true;                                             \
 }
 
-#define SIMPLE_STACK_PUSH_GEN(TYPE)                                                   \
-inline static bool SimpleStack##TYPE##_Push(SimpleStack##TYPE##_t *pStack, TYPE data) \
-{                                                                                     \
-	if (SimpleStack##TYPE##_IsFull(pStack))                                           \
-	{                                                                                 \
-		return false;                                                                 \
-	}                                                                                 \
-	*(pStack->pData + pStack->insertIndex) = data;                                    \
-	pStack->insertIndex++;                                                            \
-	return true;                                                                      \
+#define SIMPLE_STACK_PUSH_GEN(TYPE, NAME)                   \
+inline static bool NAME##_Push(NAME##_t *pStack, TYPE data) \
+{                                                           \
+	if (NAME##_IsFull(pStack))                              \
+	{                                                       \
+		return false;                                       \
+	}                                                       \
+	*(pStack->pData + pStack->insertIndex) = data;          \
+	pStack->insertIndex++;                                  \
+	return true;                                            \
 }
 
 //-----------------------------------------------------------------------------
@@ -72,9 +73,9 @@ inline static bool SimpleStack##TYPE##_Push(SimpleStack##TYPE##_t *pStack, TYPE 
 //-----------------------------------------------------------------------------
 typedef struct SimpleStack
 {
-	uint_t totalCount;
-	uint_t entrySize;
-	uint_t insertIndex;
+	unsigned int totalCount;
+	unsigned int entrySize;
+	unsigned int insertIndex;
 	void *pData;
 } SimpleStack_t;
 

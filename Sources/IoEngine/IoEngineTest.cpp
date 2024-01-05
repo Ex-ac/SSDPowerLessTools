@@ -38,7 +38,7 @@ TEST(IoEngineTest, IoRequest)
 	{
 		command.config.commandId = i;
 		DebugPrint("IoEngine_Submit %d\n", i);
-		while (IoEngine_Submit(pIoEngine, &command) == false)
+		while (IoEngine_Submit(pIoEngine, i) == false)
 		{
 			DebugPrint("IoEngine_Submit failed %d\n", i);
 			sleep(1);
