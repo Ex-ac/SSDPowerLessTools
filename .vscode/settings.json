@@ -26,6 +26,10 @@
 		"types.h": "c",
 		"chrono": "c",
 		"time.h": "c",
-		"features.h": "c"
+		"features.h": "c",
+		"simplelist.h": "c",
+		"epoll.h": "c",
+		"string.h": "c",
+		"stdlib.h": "c"
 	}
 }

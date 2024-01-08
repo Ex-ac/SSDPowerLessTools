@@ -29,15 +29,15 @@ extern "C" {
 //  Data type definitions: typedef, struct or class
 //-----------------------------------------------------------------------------
 struct SimpleList;
-const SimpleListEntryOperator_t *pEntryOperator;
+// const SimpleListEntryOperator_t *pEntryOperator;
 
 typedef void * (*SimpleListGetNextFunc_t)(void *);
 typedef void (*SimpleListSetNextFunc_t)(void *, void *);
 
 
-typedef unsigned int (*SimpleListCountFunc_t)(const struct SimpleList *pList);
-typedef void (*SimpleListPushFunc_t)(struct SimpleList *pList, void *pHead, void *pTail, unsigned int count);
-typedef uint32_t (*SimpleListPopFunc_t)(struct SimpleList *pList, unsigned int count, uint32_t *pHead, uint32_t *pTail);
+// typedef size_t (*SimpleListCountFunc_t)(const struct SimpleList *pList);
+// typedef void (*SimpleListPushFunc_t)(struct SimpleList *pList, void *pHead, void *pTail, unsigned int count);
+// typedef size_t (*SimpleListPopFunc_t)(struct SimpleList *pList, unsigned int count, void *pHead, void *pTail);
 
 
 typedef struct SimpleListEntryOperator
@@ -67,14 +67,14 @@ void SimpleList_Init(SimpleList_t *pList, const SimpleListEntryOperator_t *pEntr
 //  Inline functions
 //-----------------------------------------------------------------------------
 
-inline static unsigned int _SimpleList_GetListCountFunc(void *pHead, void *pTail, const SimpleListEntryOperator_t *pEntryOperator)
+inline static size_t _SimpleList_GetListCountFunc(void *pHead, void *pTail, const SimpleListEntryOperator_t *pEntryOperator)
 {
 	if (pHead == (void *)(cSimpleListInvalid))
 	{
 		return 0;
 	}
 
-	unsigned int ret = 1;
+	size_t ret = 1;
 	while (pHead != pTail)
 	{
 		pHead = pEntryOperator->getNextFunc(pHead);
@@ -139,7 +139,7 @@ inline static void *_SimpleList_Dell(void *pHead, unsigned count, void *pObject,
 }
 
 
-inline static unsigned int SimpleList_GetListCount(const SimpleList_t *pList, void *pHead, void *pTail)
+inline static size_t SimpleList_GetListCount(const SimpleList_t *pList, void *pHead, void *pTail)
 {
 	return _SimpleList_GetListCountFunc(pHead, pTail, pList->pEntryOperator);
 }

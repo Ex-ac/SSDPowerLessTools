@@ -68,6 +68,12 @@ inline static bool NAME##_Push(NAME##_t *pStack, TYPE data) \
 	return true;                                            \
 }
 
+#define SIMPLE_STACK_GET_COUNT_GEN(TYPE, NAME)                     \
+inline static unsigned int NAME##_GetCount(const NAME##_t *pStack) \
+{                                                                  \
+	return pStack->insertIndex;                                    \
+}
+
 //-----------------------------------------------------------------------------
 //  Data type definitions: typedef, struct or class
 //-----------------------------------------------------------------------------
@@ -121,6 +127,12 @@ inline static bool SimpleStack_Push(SimpleStack_t *pStack, void *pData)
 	memcpy(pStack->pData + pStack->insertIndex * pStack->entrySize, pData, pStack->entrySize);
 	pStack->insertIndex ++;
 	return true;
+}
+
+#pragma always_inline
+inline static unsigned int SimpleStack_GetCount(const SimpleStack_t *pStack)
+{
+	return pStack->insertIndex;
 }
 
 
