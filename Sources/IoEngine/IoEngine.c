@@ -25,11 +25,13 @@
 #include <fcntl.h>
 #include <string.h>
 #include <sys/epoll.h>
-
+#include <time.h>
 
 #include "SimpleFifo.h"
+#include "SimpleList.h"
 #include "Debug.h"
 #include "Queue.h"
+
 
 //-----------------------------------------------------------------------------
 //  Constants definitions:
@@ -51,6 +53,7 @@ typedef enum RequestThreadStatue
 typedef enum CompletedThreadStatue
 {
 	cCompletedThreadStatue_Instance = 0x00,	// alloc the instance
+	cCompletedThreadStatue_WaitCommandItemList,		// init the wait item list
 	cCompletedThreadStatue_Queue,				// init the queue
 	cCompletedThreadStatue_Epoll,				// init the epoll
 	cCompletedThreadStatue_Thread,			// create the thread
@@ -87,19 +90,33 @@ typedef struct RequestThreadContext
 } RequestThreadContext_t;
 
 
+typedef struct WaitCommandItem
+{
+	CommandId_t commandId;
+	struct WaitCommandItem *pNext;
+} WaitCommandItem_t;
+
 /**
  * @brief io command completed queue process thread context
  * 
  */
 typedef struct CompletedThreadContext
 {
-
-	CommandIdFifo_t completedQueue;		// to save the usr request
+	SimpleList_t waitCommandItemList;
+	WaitCommandItem_t *pWaitCommandItemList;
+	CommandIdFifo_t completedQueue;		// to save the complete from driver
+	CommandIdFifo_t waitQueue;			// wait for complete
 	pthread_t thread;
 	struct epoll_event epollEvent;
 	int epollFileHandler;
 	bool exit				: 1;	// when completed queue empty, exit the thread
 } CompletedThreadContext_t;
+
+
+
+
+
+
 
 //-----------------------------------------------------------------------------
 //  Private function proto-type definitions:
@@ -157,12 +174,21 @@ static void CompletedThreadContext_Destroy(CompletedThreadContext_t *pContext, i
 
 static void CompletedThread_Exit(CompletedThreadContext_t *pContext);
 
-static void *COmpletedThread_Processor(void *param);
+static void *CompletedThread_Processor(void *param);
+
+static void *WaitCommandItemGetNext(const WaitCommandItem_t *pItem);
+static void WaitCommandItemSetNext(WaitCommandItem_t *pItem, void *pNext);
+
 
 //-----------------------------------------------------------------------------
 //  Data declaration: Private or Public
 //-----------------------------------------------------------------------------
 
+const static SimpleListEntryOperator_t cWaitCommandItemEntryOperator =
+{
+	.getNextFunc = (SimpleListGetNextFunc_t)WaitCommandItemGetNext,
+	.setNextFunc = (SimpleListSetNextFunc_t)WaitCommandItemSetNext,
+};
 
 //-----------------------------------------------------------------------------
 //  Imported data proto-type without header include
@@ -457,4 +483,19 @@ void IoEngine_ResetRequestQueue(IoEngine_t *pIoEngine)
 
 	// reset the abort flag, can't process the request again
 	pContext->abort = false;
+}
+
+
+
+static void *WaitCommandItemGetNext(const WaitCommandItem_t *pItem)
+{
+	ASSERT_DEBUG(pItem != NULL && (void *)pItem != (void *)(cSimpleListInvalid));
+	return pItem->pNext;
+}
+
+
+static void WaitCommandItemSetNext(WaitCommandItem_t *pItem, void *pNext)
+{
+	ASSERT_DEBUG(pItem != NULL && (void *)pItem != (void *)(cSimpleListInvalid));
+	pItem->pNext = pNext;
 }

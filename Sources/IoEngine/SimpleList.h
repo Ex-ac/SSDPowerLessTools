@@ -49,39 +49,19 @@ typedef struct SimpleListEntryOperator
 #endif
 } SimpleListEntryOperator_t;
 
-typedef struct SimpleListOperator
-{
-	SimpleListGetListCountFunc_t getListCountFunc;
-	SimpleListFindNextFunc_t findNextFunc;
-	SimpleListFindPreviousFunc_t findFunc;
-	SimpleListDellFunc_t dellFunc;
-	SimpleListCountFunc_t countFunc;
-	SimpleListPushFunc_t pushFunc;
-	SimpleListPopFunc_t popFunc;
-} SimpleListOperator_t;
-
-
-
 typedef struct SimpleList
 {
 	void *pHead;
 	void *pTail;
 	unsigned int count;
 	const SimpleListEntryOperator_t *pEntryOperator;
-	const SimpleListOperator_t *pOperator;
 } SimpleList_t;
 
 //-----------------------------------------------------------------------------
 //  Public interface functions:
 //-----------------------------------------------------------------------------
 
-void SimpleList_Init(SimpleList_t *pList, const SimpleListEntryOperator_t *pEntryOperator, const SimpleListOperator_t *pOperator);
-
-unsigned int _SimpleList_GetListCountFunc(void *pHead, void *pTail, const SimpleListEntryOperator_t *pEntryOperator);
-void *_SimpleList_FindNext(void *pHead, unsigned int count,const SimpleListEntryOperator_t *pEntryOperator);
-typedef void _SimpleListFindPrevious(void *pHead, unsigned count, void *pObject,const SimpleListEntryOperator_t *pEntryOperator);
-typedef void _SimpleListDell(void *pHead, unsigned count,  void *pObject, const SimpleListEntryOperator_t *pEntryOperator);
-
+void SimpleList_Init(SimpleList_t *pList, const SimpleListEntryOperator_t *pEntryOperator);
 
 //-----------------------------------------------------------------------------
 //  Inline functions

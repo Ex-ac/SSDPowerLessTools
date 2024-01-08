@@ -14,6 +14,7 @@ extern "C" {
 #include <stddef.h>
 #include <assert.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "SimpleFifo.h"
 
@@ -99,11 +100,20 @@ typedef union CommandCommandConfig
 		CommandStatus_t status	: 8;
 		uint64_t reserved		: 40;
 	};
-	
 } CommandCommandConfig_t;
+
+typedef struct CommandTime
+{
+	clock_t startTime;		// command generator
+	clock_t submitTime;		// command submit to device
+	clock_t completeTime;	// command complete
+	int timeout;			// command timeout
+} CommandTime_t;
+
 typedef struct CommonCommand
 {
 	CommandCommandConfig_t config;
+	CommandTime_t time;
 	union
 	{
 		uint8_t all[MAX_COMMON_COMMAND_SIZE];

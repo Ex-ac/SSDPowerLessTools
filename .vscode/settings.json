@@ -24,6 +24,8 @@
 		"assert.h": "c",
 		"stdint-gcc.h": "c",
 		"types.h": "c",
-		"chrono": "c"
+		"chrono": "c",
+		"time.h": "c",
+		"features.h": "c"
 	}
 }

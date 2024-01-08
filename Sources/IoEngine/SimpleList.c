@@ -47,26 +47,10 @@
 //  Public functions
 //-----------------------------------------------------------------------------
 
-unsigned int _SimpleList_GetListCountFunc(void *pHead, void *pTail, const SimpleListEntryOperator_t *pEntryOperator);
-
-void *_SimpleList_FindNext(void *pHead, unsigned int count,const SimpleListEntryOperator_t *pEntryOperator)
+void SimpleList_Init(SimpleList_t *pList, const SimpleListEntryOperator_t *pEntryOperator)
 {
-	void *pObject = pHead;
-	while (count--)
-	{
-		pObject = pEntryOperator->getNextFunc(pObject);
-	}
-	return pObject;
-}
-
-
-typedef void _SimpleListFindPrevious(void *pHead, unsigned count, void *pObject,const SimpleListEntryOperator_t *pEntryOperator)
-{
-
-}
-
-
-typedef void _SimpleListDell(void *pHead, unsigned count,  void *pObject, const SimpleListEntryOperator_t *pEntryOperator)
-{
-
+	pList->pHead = (void *)(cSimpleListInvalid);
+	pList->pTail = (void *)(cSimpleListInvalid);
+	pList->count = 0;
+	pList->pEntryOperator = pEntryOperator;
 }
