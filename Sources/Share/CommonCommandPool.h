@@ -14,7 +14,7 @@ extern "C" {
 //-----------------------------------------------------------------------------
 //  Constant definitions:
 //-----------------------------------------------------------------------------
-#define cMaxCommonCommandPoolCount				1024
+#define cMaxCommonCommandPoolCount				64
 #define COMMON_COMMAND_POOL_DEBUG				true
 //-----------------------------------------------------------------------------
 //  Macros definitions:
@@ -39,8 +39,8 @@ void CommonCommandPool_DeInit(void);
 CommandId_t CommonCommandPool_Alloc(void);
 void CommonCommandPool_Dealloc(CommandId_t commandId);
 
-bool CommandCommandPool_Allocs(unsigned int count, CommandId_t pCommandIds[]);
-void CommandCommandPool_Deallocs(unsigned int count, CommandId_t pCommandIds[]);
+bool CommonCommandPool_Allocs(unsigned int count, CommandId_t pCommandIds[]);
+void CommonCommandPool_Deallocs(unsigned int count, CommandId_t pCommandIds[]);
 
 unsigned int CommonCommandPool_GetSize(void);
 CommonCommand_t *CommonCommandPool_GetCommand(CommandId_t commandId);

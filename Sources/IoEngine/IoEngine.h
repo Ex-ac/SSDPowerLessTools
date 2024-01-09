@@ -98,7 +98,7 @@ bool IoEngine_Submit(IoEngine_t *pIoEngine, CommandId_t commandId);
  * @param pIoEngine 
  * @return free count
  */
-uint_t IoEngine_RequestQueueFreeCount(IoEngine_t *pIoEngine);
+uint_t IoEngine_RequestQueueFreeCount(const IoEngine_t *pIoEngine);
 
 /**
  * @brief abort the request queue, incomplete io command will return to completed queue
@@ -123,6 +123,9 @@ bool IoEngine_RequestQueueIsAbort(IoEngine_t *pIoEngine);
  */
 void IoEngine_ResetRequestQueue(IoEngine_t *pIoEngine);
 
+
+uint_t IoEngine_CompletedQueueCount(const IoEngine_t *pIoEngine);
+bool IoEngine_CompletedQueuePop(IoEngine_t *pIoEngine, CommandId_t *pCommandId);
 //-----------------------------------------------------------------------------
 //  Inline functions
 //-----------------------------------------------------------------------------

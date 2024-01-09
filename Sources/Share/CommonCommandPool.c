@@ -110,6 +110,8 @@ void CommonCommandPool_DeInit(void)
 	ASSERT(CommandIdStack_IsFull(&sCommandPool.commandIdStack));
 	free(sCommandPool.commandIdStack.pData);
 	pthread_mutex_unlock(&sCommandPool.mutex);
+
+	pthread_mutex_destroy(&sCommandPool.mutex);
 }
 
 // bool CommonCommandPool_TryLock(void);
@@ -134,7 +136,7 @@ void CommonCommandPool_Dealloc(CommandId_t commandId)
 	pthread_mutex_unlock(&sCommandPool.mutex);
 }
 
-bool CommandCommandPool_Allocs(unsigned int count, CommandId_t pCommandIds[])
+bool CommonCommandPool_Allocs(unsigned int count, CommandId_t pCommandIds[])
 {
 	pthread_mutex_lock(&sCommandPool.mutex);
 	if (count > CommandIdStack_GetCount(&sCommandPool.commandIdStack))
@@ -148,7 +150,7 @@ bool CommandCommandPool_Allocs(unsigned int count, CommandId_t pCommandIds[])
 	return true;
 }
 
-void CommandCommandPool_Deallocs(unsigned int count, CommandId_t pCommandIds[])
+void CommonCommandPool_Deallocs(unsigned int count, CommandId_t pCommandIds[])
 {
 	pthread_mutex_lock(&sCommandPool.mutex);
 	ASSERT(sCommandPool.commandIdStack.insertIndex + count <= sCommandPool.commandIdStack.totalCount);

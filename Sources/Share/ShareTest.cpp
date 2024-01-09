@@ -32,7 +32,7 @@ TEST(CommonCommandPool, BaseTest)
 
 	ASSERT_EQ(CommonCommandPool_GetSize(), cMaxCommonCommandPoolCount);
 
-	CommandCommandPool_Allocs(cMaxCommonCommandPoolCount, ids);
+	CommonCommandPool_Allocs(cMaxCommonCommandPoolCount, ids);
 	ASSERT_EQ(CommonCommandPool_GetSize(), 0);
 
 	for (int i = 0; i < cMaxCommonCommandPoolCount; ++i)
@@ -40,7 +40,7 @@ TEST(CommonCommandPool, BaseTest)
 		ASSERT_EQ(ids[i], cMaxCommonCommandPoolCount - i - 1);
 	}
 
-	CommandCommandPool_Deallocs(cMaxCommonCommandPoolCount, ids);
+	CommonCommandPool_Deallocs(cMaxCommonCommandPoolCount, ids);
 	ASSERT_EQ(CommonCommandPool_GetSize(), cMaxCommonCommandPoolCount);
 
 	CommonCommandPool_DeInit();

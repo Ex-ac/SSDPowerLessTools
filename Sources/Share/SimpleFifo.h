@@ -35,7 +35,7 @@ typedef struct NAME                             \
 } NAME##_t;
 
 #define SIMPLE_FIFO_TYPE_INIT_GEN(TYPE, NAME)                                             \
-inline static void NAME##_Init(NAME##_t *pFifo, uint32_t totalCount, TYPE *entryBaseAddr) \
+inline static void NAME##_Init(NAME##_t *pFifo, unsigned int totalCount, TYPE *entryBaseAddr) \
 {                                                                                         \
 	pFifo->frontIndex = pFifo->rearIndex = 0;                                             \
 	pFifo->mask = totalCount - 1;                                                         \

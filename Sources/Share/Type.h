@@ -78,6 +78,7 @@ typedef enum CommandStatus
 	cCommandStatus_Failed,
 	cCommandStatus_Abort,
 	cCommandStatus_Timeout,
+	cCommandStatus_Submit,
 	cCommandStatus_Invalid,
 } CommandStatus_t;
 
@@ -107,7 +108,7 @@ typedef struct CommandTime
 	clock_t startTime;		// command generator
 	clock_t submitTime;		// command submit to device
 	clock_t completeTime;	// command complete
-	int timeout;			// command timeout
+	int timeoutMs;			// command timeout
 } CommandTime_t;
 
 typedef struct CommonCommand
