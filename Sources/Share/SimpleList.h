@@ -12,7 +12,7 @@ extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdatomic.h>
+// #include <stdatomic.h>
 
 #include "Debug.h"
 
@@ -21,7 +21,7 @@ extern "C" {
 //-----------------------------------------------------------------------------
 
 #define cSimpleListInvalid SIZE_MAX
-
+#define SIMPLE_LIST_DEBUG  false
 //-----------------------------------------------------------------------------
 //  Macros definitions:
 //-----------------------------------------------------------------------------

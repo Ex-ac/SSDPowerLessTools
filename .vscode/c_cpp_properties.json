@@ -11,10 +11,10 @@
                 ]
             },
             "defines": [],
-            "compilerPath": "/usr/bin/clang",
+            "compilerPath": "/usr/bin/gcc",
             "cStandard": "c17",
             "cppStandard": "gnu++17",
-            "intelliSenseMode": "clang-arm64"
+            "intelliSenseMode": "gcc-x64"
         }
     ],
     "version": 4

@@ -28,13 +28,13 @@ extern "C" {
 //-----------------------------------------------------------------------------
 //  Constant definitions:
 //-----------------------------------------------------------------------------
+#define IO_ENGINE_DEBUG				true
 
 typedef enum IoEngineType
 {
 	cIoEngineType_Default = 0x00,
 	cIoEngineType_Aio,
 } IoEngineType_t;
-
 
 //-----------------------------------------------------------------------------
 //  Macros definitions:
@@ -44,11 +44,12 @@ typedef enum IoEngineType
 //-----------------------------------------------------------------------------
 //  Data type definitions: typedef, struct or class
 //-----------------------------------------------------------------------------
-
+struct RequestThreadContext;
+struct CompletedThreadContext;
 typedef struct IoEngine
 {
-	void *requestThreadContext;
-	void *completedThreadContext;
+	struct RequestThreadContext *requestThreadContext;
+	struct CompletedThreadContext *completedThreadContext;
 	// bool exit;
 	// sem_t requestQueueSemaphore,
 	// void *requestQueue;

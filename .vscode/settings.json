@@ -30,6 +30,7 @@
 		"simplelist.h": "c",
 		"epoll.h": "c",
 		"string.h": "c",
-		"stdlib.h": "c"
+		"stdlib.h": "c",
+		"commoncommandpool.h": "c"
 	}
 }

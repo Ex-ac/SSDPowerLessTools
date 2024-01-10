@@ -93,19 +93,16 @@ typedef struct SimpleStack
 //-----------------------------------------------------------------------------
 //  Inline functions
 //-----------------------------------------------------------------------------
-#pragma always_inline
 inline static bool SimpleStack_IsFull(const SimpleStack_t *pStack)
 {
 	return pStack->totalCount == pStack->insertIndex;
 }
 
-#pragma always_inline
 inline static bool SimpleStack_IsEmpty(const SimpleStack_t *pStack)
 {
 	return pStack->insertIndex == 0x00;
 }
 
-#pragma always_inline
 inline static void *SimpleStack_Pop(SimpleStack_t *pStack)
 {
 	if (SimpleStack_IsEmpty(pStack))
@@ -117,7 +114,6 @@ inline static void *SimpleStack_Pop(SimpleStack_t *pStack)
 	return pStack->pData + pStack->entrySize * pStack->insertIndex;
 }
 
-#pragma always_inline
 inline static bool SimpleStack_Push(SimpleStack_t *pStack, void *pData)
 {
 	if (SimpleStack_IsFull(pStack))
@@ -129,7 +125,6 @@ inline static bool SimpleStack_Push(SimpleStack_t *pStack, void *pData)
 	return true;
 }
 
-#pragma always_inline
 inline static unsigned int SimpleStack_GetCount(const SimpleStack_t *pStack)
 {
 	return pStack->insertIndex;

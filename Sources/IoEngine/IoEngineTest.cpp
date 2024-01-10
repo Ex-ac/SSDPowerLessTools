@@ -34,6 +34,7 @@ TEST(IoEngineTest, IoRequest)
 	std:srand(std::time(0));
 
 	uint_t completedCount = 0;
+	const unsigned testCount = 1024 * 1024;
 
 	CommonCommandPool_Init();
 	const int requestCount = 32;
@@ -47,7 +48,7 @@ TEST(IoEngineTest, IoRequest)
 	
 	CommandId_t completedCommandId = cInvalidCommandId;
 	
-	for (int i = 0; i < 1024 * 1024; i++)
+	for (int i = 0; i < testCount; i++)
 	{
 		CommandId_t commandId = CommonCommandPool_Alloc();
 
@@ -76,17 +77,17 @@ TEST(IoEngineTest, IoRequest)
 		CommonCommand_t *pCommand = CommonCommandPool_GetCommand(commandId);
 		pCommand->config.commandId = i;
 		pCommand->time.startTime = clock();
-		pCommand->time.timeoutMs = std::rand() % 1000;
+		pCommand->time.timeoutMs = std::rand() % 100;
 
 
 		while (IoEngine_Submit(pIoEngine, commandId) == false)
 		{
 			DebugPrint("IoEngine_Submit failed %d\n", i);
-			usleep(1000 * std::rand() % 10);
+			usleep(1000  * std::rand() % 10);
 		}
 	}
 
-	while (completedCount != 1024)
+	while (completedCount != testCount)
 	{
 		uint_t count = IoEngine_CompletedQueueCount(pIoEngine);
 

@@ -113,59 +113,51 @@ void SimpleFifo_Destroy(SimpleFifo_t *pFifo);
 //  Inline functions
 //-----------------------------------------------------------------------------
 
-#pragma always_inline
+
 inline static bool SimpleFifo_IsEmtpy(const SimpleFifo_t *pFifo)
 {
 	// DebugPrint("%p/%p", pFifo, __builtin_return_address(0));
 	return pFifo->frontIndex == pFifo->rearIndex;
 }
 
-#pragma always_inline
 inline static bool SimpleFifo_IsFull(const SimpleFifo_t *pFifo)
 {
 	// DebugPrint("");
 	return pFifo->frontIndex == ((pFifo->rearIndex + 1) & pFifo->mask);
 }
 
-#pragma always_inline
 inline static unsigned int SimpleFifo_Count(const SimpleFifo_t *pFifo)
 {
 	return (pFifo->mask + 1 + pFifo->rearIndex - pFifo->frontIndex) & (pFifo->mask);
 }
 
-#pragma always_inline
 inline static unsigned int SimpleFifo_FreeCount(const SimpleFifo_t *pFifo)
 {
 	return pFifo->mask - SimpleFifo_Count(pFifo);
 }
 
-#pragma always_inline
 inline static unsigned int SimpleFifo_EntrySize(const SimpleFifo_t *pFifo)
 {
 	return pFifo->entrySize;
 }
 
-#pragma always_inline
 inline static void SimpleFifo_Push(SimpleFifo_t *pFifo)
 {
 	ASSERT_DEBUG(!SimpleFifo_IsFull(pFifo));
 	pFifo->rearIndex = (pFifo->rearIndex + 1) & pFifo->mask;
 }
 
-#pragma always_inline
 inline static void SimpleFifo_Pop(SimpleFifo_t *pFifo)
 {
 	ASSERT_DEBUG(!SimpleFifo_IsEmtpy(pFifo));
-	pFifo->frontIndex = pFifo->frontIndex + 1 & pFifo->mask;
+	pFifo->frontIndex = (pFifo->frontIndex + 1) & pFifo->mask;
 }
 
-#pragma always_inline
 inline static void* SimpleFifo_Offer(SimpleFifo_t *pFifo)
 {
 	return SimpleFifo_IsFull(pFifo) ? NULL : pFifo->pEntry + pFifo->rearIndex * pFifo->entrySize;
 }
 
-#pragma always_inline
 inline static void* SimpleFifo_Peek(SimpleFifo_t *pFifo)
 {
 	return SimpleFifo_IsEmtpy(pFifo) ? NULL : pFifo->pEntry + pFifo->frontIndex * pFifo->entrySize;

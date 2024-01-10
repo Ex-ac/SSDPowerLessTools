@@ -91,6 +91,7 @@ typedef struct RequestThreadContext
 	bool exit				: 1;	// do abort and exit the thread
 	bool ready			: 1;	// the thread is ready to process the request		
 	IoEngine_t *owner;
+	unsigned int processorCount;
 } RequestThreadContext_t;
 
 
@@ -117,6 +118,8 @@ typedef struct CompletedThreadContext
 	bool exit				: 1;	// when completed queue empty, exit the thread
 	bool ready				: 1;
 	IoEngine_t *owner;
+	unsigned int waitCount;
+	unsigned int completedCount;
 } CompletedThreadContext_t;
 
 
@@ -186,7 +189,7 @@ static void *CompletedThread_Processor(void *param);
 static void *WaitCommandItemGetNext(const WaitCommandItem_t *pItem);
 static void WaitCommandItemSetNext(WaitCommandItem_t *pItem, void *pNext);
 
-static void PushToWaitQueue(CompletedThreadContext_t *pContext, CommandId_t commandId);
+static bool PushToWaitQueue(CompletedThreadContext_t *pContext, CommandId_t commandId);
 
 static void CompletedThread_Exit(CompletedThreadContext_t *pContext);
 
@@ -228,7 +231,16 @@ static void *RequestThread_Processor(void *param)
 	{
 		// DebugPrint("wait semaphore");
 		pthread_mutex_lock(&pContext->mutex);
-		pthread_cond_wait(&pContext->semaphore, &pContext->mutex);
+		if (CommandIdFifo_IsEmpty(&pContext->requestQueue))
+		{
+			// DebugPrint("wait semaphore");
+			pthread_cond_wait(&pContext->semaphore, &pContext->mutex);
+		}
+		else
+		{
+			// __breakpoint();
+			DebugPrint("no wait semaphore");
+		}
 		pthread_mutex_unlock(&pContext->mutex);
 		// DebugPrint("get semaphore");
 		
@@ -252,8 +264,12 @@ static void *RequestThread_Processor(void *param)
 
 			}
 			// move to wait queue
-
-			PushToWaitQueue(pContext->owner->completedThreadContext, commandId);
+			pContext->processorCount ++;
+			while (PushToWaitQueue(pContext->owner->completedThreadContext, commandId) == false)
+			{
+				// wait for completed queue free
+				usleep(10);
+			}
 			
 
 			// usleep(10000);
@@ -543,6 +559,8 @@ static void *CompletedThread_Processor(void *param)
 
 			DebugPrint("to wait: %d", pItem->commandId);
 
+			pContext->waitCount ++;
+
 			// push to wait item list
 			SimpleList_PushToTail(&pContext->waitCommandItemList, pItem, pItem, 1);
 			DebugPrint("wait list: %d/%d %d", ((WaitCommandItem_t *)(pContext->waitCommandItemList.pHead))->commandId, ((WaitCommandItem_t *)(pContext->waitCommandItemList.pTail))->commandId, SimpleList_Count(&pContext->waitCommandItemList));
@@ -597,8 +615,15 @@ static void *CompletedThread_Processor(void *param)
 			if (isCompleted)
 			{
 				DebugPrint("Completed: %d %d", pItem->commandId, pCommand->config.status);
+				pContext->completedCount ++;
 				// move to completed queue
-				CommandIdFifo_Push(&pContext->completedQueue, pItem->commandId);
+				while (CommandIdFifo_Push(&pContext->completedQueue, pItem->commandId) == false)
+				{
+					// wait for completed queue free
+					usleep(10);
+				}
+				// isCompleted =  CommandIdFifo_Push(&pContext->completedQueue, pItem->commandId);
+				// ASSERT_DEBUG(isCompleted);
 
 				SimpleList_Dell(&pContext->waitCommandItemList, pItem);
 				SimpleList_PushToTail(&pContext->waitCommandItemFreeList, pItem, pItem, 1);
@@ -631,10 +656,9 @@ static void WaitCommandItemSetNext(WaitCommandItem_t *pItem, void *pNext)
 }
 
 
-static void PushToWaitQueue(CompletedThreadContext_t *pContext, CommandId_t commandId)
+static bool PushToWaitQueue(CompletedThreadContext_t *pContext, CommandId_t commandId)
 {
-	bool ret = CommandIdFifo_Push(&pContext->waitQueue, commandId);
-	ASSERT_DEBUG(ret);
+	return CommandIdFifo_Push(&pContext->waitQueue, commandId);
 }
 
 
@@ -711,7 +735,7 @@ void IoEngine_Destroy(IoEngine_t *pIoEngine)
 
 bool IoEngine_Submit(IoEngine_t *pIoEngine, CommandId_t commandId)
 {
-	DebugPrint("start");
+	// DebugPrint("start");
 	if (pIoEngine == NULL)
 	{
 		return false;
@@ -724,12 +748,14 @@ bool IoEngine_Submit(IoEngine_t *pIoEngine, CommandId_t commandId)
 		return false;
 	}
 
-	DebugPrint("push");
+	// DebugPrint("push");
 	bool notify = CommandIdFifo_IsEmpty(&pContext->requestQueue);
 	bool ret = CommandIdFifo_Push(&pContext->requestQueue, commandId);
-	if (notify)
+
+	// level trigger, don't not edge trigger
+	// if (notify)
 	{
-		DebugPrint("notify");
+		// DebugPrint("notify");
 		RequestThread_Notify(pContext);
 	}
 	return ret;

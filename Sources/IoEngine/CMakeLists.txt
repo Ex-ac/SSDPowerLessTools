@@ -28,9 +28,12 @@ find_package(GTest REQUIRED)
 find_package(Threads REQUIRED)
 
 add_executable(${ModuleName}Test)
-target_sources(${ModuleName}Test PUBLIC ${ModuleName}Test.cpp)
+target_sources(${ModuleName}Test PUBLIC ${ModuleName}Test.cpp ${${ModuleName}Sources})
+target_include_directories(${ModuleName}Test PUBLIC ${${ModuleName}Headers})
+target_link_libraries(${ModuleName}Test Share)
 target_link_libraries(${ModuleName}Test ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-target_link_libraries(${ModuleName}Test ${ModuleName})
+
+# target_link_libraries(${ModuleName}Test ${ModuleName})
 
 gtest_discover_tests(${ModuleName}Test)
 
