@@ -46,10 +46,12 @@ typedef enum IoEngineType
 //-----------------------------------------------------------------------------
 struct RequestThreadContext;
 struct CompletedThreadContext;
+struct EngineOperator;
 typedef struct IoEngine
 {
 	struct RequestThreadContext *requestThreadContext;
 	struct CompletedThreadContext *completedThreadContext;
+	const struct EngineOperator *engineOperator;
 	// bool exit;
 	// sem_t requestQueueSemaphore,
 	// void *requestQueue;

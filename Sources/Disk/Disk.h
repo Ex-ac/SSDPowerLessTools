@@ -18,6 +18,8 @@ extern "C" {
 #include <stdbool.h>
 #include <limits.h>
 
+#include "Type.h"
+
 
 //-----------------------------------------------------------------------------
 //  Constant definitions:

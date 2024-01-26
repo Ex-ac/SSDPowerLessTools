@@ -31,6 +31,7 @@
 		"epoll.h": "c",
 		"string.h": "c",
 		"stdlib.h": "c",
-		"commoncommandpool.h": "c"
+		"commoncommandpool.h": "c",
+		"fcntl.h": "c"
 	}
 }

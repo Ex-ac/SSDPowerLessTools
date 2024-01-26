@@ -25,6 +25,7 @@ extern "C" {
 //-----------------------------------------------------------------------------
 #define MAX_COMMON_COMMAND_SIZE		0x40
 #define cInvalidCommandId			__UINT32_MAX__
+#define cSectorSize					512
 
 //-----------------------------------------------------------------------------
 //  Macros definitions:
@@ -44,7 +45,7 @@ extern "C" {
 //-----------------------------------------------------------------------------
 //  Data type definitions: typedef, struct or class
 //-----------------------------------------------------------------------------
-struct Disk_t;
+struct Disk;
 
 
 typedef unsigned int uint_t;
@@ -69,6 +70,7 @@ typedef enum IoType
 {
 	cIoType_Write = 0,
 	cIoType_Read,
+	cMaxNumberOfIOType,
 } IoType_t;
 
 
@@ -84,7 +86,7 @@ typedef enum CommandStatus
 
 typedef struct IoRequest
 {
-	struct Disk_t *pDisk;
+	struct Disk *pDisk;
 	IoType_t ioType;
 	LbaRange_t lbaRange;
 	void *buffer;
@@ -140,7 +142,6 @@ SIMPLE_FIFO_TYPE_IS_FULL_GEN(CommandId_t, CommandIdFifo);
 SIMPLE_FIFO_TYPE_IS_EMPTY_GEN(CommandId_t, CommandIdFifo);
 SIMPLE_FIFO_TYPE_POP_GEN(CommandId_t, CommandIdFifo);
 SIMPLE_FIFO_TYPE_PUSH_GEN(CommandId_t, CommandIdFifo);
-
 
 
 //-----------------------------------------------------------------------------

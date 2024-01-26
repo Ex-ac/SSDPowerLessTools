@@ -32,6 +32,7 @@
 #include "Debug.h"
 #include "Queue.h"
 #include "CommonCommandPool.h"
+#include "Disk.h"
 
 
 //-----------------------------------------------------------------------------
@@ -76,6 +77,17 @@ typedef enum CompletedThreadStatue
 //-----------------------------------------------------------------------------
 //  Data type definitions: typedef, struct or class
 //-----------------------------------------------------------------------------
+
+typedef bool (*IoOperatorFunc_t)(CommonCommand_t *pCommand);
+typedef bool (*EngineInitFunc_t)(IoEngine_t *pIoEngine);
+typedef bool (*EngineCheckCompletedFunc_t)(IoEngine_t *pIoEngine);
+
+typedef struct EngineOperator
+{
+	EngineInitFunc_t init;
+	IoOperatorFunc_t ioOperator[cMaxNumberOfIOType];
+	EngineCheckCompletedFunc_t check;
+} EngineOperator_t;
 
 /**
  * @brief io command request queue process thread context
@@ -123,11 +135,6 @@ typedef struct CompletedThreadContext
 } CompletedThreadContext_t;
 
 
-
-
-
-
-
 //-----------------------------------------------------------------------------
 //  Private function proto-type definitions:
 //-----------------------------------------------------------------------------
@@ -147,6 +154,8 @@ static RequestThreadContext_t *RequestThreadContext_Creat(uint_t queueDepth, IoE
  * @param statue create statue
  */
 static void RequestThread_Destroy(RequestThreadContext_t *pContext, int statue);
+
+static bool RequestThread_CommandExecute(RequestThreadContext_t *pContext, CommandId_t commandId);
 
 /**
  * @brief request thread processor function
@@ -193,6 +202,21 @@ static bool PushToWaitQueue(CompletedThreadContext_t *pContext, CommandId_t comm
 
 static void CompletedThread_Exit(CompletedThreadContext_t *pContext);
 
+
+//-----------------------------------------------------------------------------
+//  Imported data proto-type without header include
+//-----------------------------------------------------------------------------
+
+
+//-----------------------------------------------------------------------------
+//  Imported function proto-type without header include
+//-----------------------------------------------------------------------------
+extern bool IoEngineFile_Write(CommonCommand_t *pCommand);
+extern bool IoEngineFile_Read(CommonCommand_t *pCommand);
+extern bool IoEngineFile_Init(IoEngine_t *pIoEngine);
+extern bool IoEngineFile_CheckCompleted(IoEngine_t *pIoEngine);
+
+
 //-----------------------------------------------------------------------------
 //  Data declaration: Private or Public
 //-----------------------------------------------------------------------------
@@ -203,15 +227,15 @@ const static SimpleListEntryOperator_t cWaitCommandItemEntryOperator =
 	.setNextFunc = (SimpleListSetNextFunc_t)WaitCommandItemSetNext,
 };
 
-//-----------------------------------------------------------------------------
-//  Imported data proto-type without header include
-//-----------------------------------------------------------------------------
-
-
-//-----------------------------------------------------------------------------
-//  Imported function proto-type without header include
-//-----------------------------------------------------------------------------
-
+const static EngineOperator_t cEngineOperatorFile =
+{
+	.init = IoEngineFile_Init,
+	.ioOperator = {
+		[cIoType_Read] = IoEngineFile_Read,
+		[cIoType_Write] = IoEngineFile_Write,
+	},
+	.check = IoEngineFile_CheckCompleted,
+};
 
 //-----------------------------------------------------------------------------
 //  Private functions
@@ -260,17 +284,9 @@ static void *RequestThread_Processor(void *param)
 			else
 			{
 				// do the request, and 
-				pCommand->config.status = cCommandStatus_Submit;
+				RequestThread_CommandExecute(pContext, commandId);
 
 			}
-			// move to wait queue
-			pContext->processorCount ++;
-			while (PushToWaitQueue(pContext->owner->completedThreadContext, commandId) == false)
-			{
-				// wait for completed queue free
-				usleep(10);
-			}
-			
 
 			// usleep(10000);
 			count --;
@@ -331,6 +347,47 @@ Failed:
 	return NULL;
 }
 
+static bool RequestThread_CommandExecute(RequestThreadContext_t *pContext, CommandId_t commandId)
+{
+	bool ret = false;
+	const EngineOperator_t *pEngineOperator = pContext->owner->engineOperator;
+	ASSERT(pEngineOperator != NULL);
+
+	CommonCommand_t *pCommand = CommonCommandPool_GetCommand(commandId);
+	ASSERT_DEBUG(pCommand->config.type == cCommandType_Io);
+	ASSERT_DEBUG(pCommand->config.status == cCommandStatus_Submit);
+	ASSERT_DEBUG(pCommand->ioRequest.pDisk != NULL);
+	ASSERT_DEBUG(pCommand->ioRequest.buffer != NULL);
+	ASSERT_DEBUG(pCommand->ioRequest.lbaRange.sectorCount != 0);
+	ASSERT_DEBUG(pCommand->ioRequest.lbaRange.startLba + pCommand->ioRequest.lbaRange.sectorCount <= pCommand->ioRequest.pDisk.maxSectorCount);
+
+	pCommand->time.submitTime = time(NULL);
+
+	switch (pCommand->ioRequest.ioType)
+	{
+
+	case cIoType_Read:
+	case cIoType_Write:
+		pCommand->config.status = cCommandStatus_Submit;
+		ret = pEngineOperator->ioOperator[pCommand->ioRequest.ioType](pCommand);
+		break;
+
+	default:
+		ASSERT_DEBUG(0);
+		break;
+	}
+
+	// add to wait queue
+	while (PushToWaitQueue(pContext->owner->completedThreadContext, commandId) == false)
+	{
+		usleep(10);
+	}
+
+	// move to wait queue
+	pContext->processorCount++;
+
+	return ret;
+}
 
 static void RequestThread_Destroy(RequestThreadContext_t *pContext, int statue)
 {
@@ -536,8 +593,8 @@ static void CompletedThread_Exit(CompletedThreadContext_t *pContext)
 
 static void *CompletedThread_Processor(void *param)
 {
-
 	CompletedThreadContext_t *pContext = (CompletedThreadContext_t *)param;
+	const EngineOperator_t *pEngineOperator = pContext->owner->engineOperator;
 	int count = 0;
 	DebugPrint("start");
 	pContext->ready = true;
@@ -573,6 +630,8 @@ static void *CompletedThread_Processor(void *param)
 		{
 			DebugPrint("wait head: %d", pNextItem->commandId);
 		}
+
+		pEngineOperator->check(pContext->owner);
 
 		while (pNextItem != (void *)(cSimpleListInvalid))
 		{
@@ -693,6 +752,8 @@ IoEngine_t *IoEngine_Create(uint_t ioQueueDepth)
 		goto Failed;
 	}
 
+	pIoEngine->engineOperator = &cEngineOperatorFile;
+	
 	return pIoEngine;
 
 Failed:
