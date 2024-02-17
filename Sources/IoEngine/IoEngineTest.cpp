@@ -171,12 +171,21 @@ TEST(IoEngineTest, BaseWriteAndRead)
 		pCommand->time.startTime = clock();
 		pCommand->time.timeoutMs = 100;
 
-		pCommand->ioRequest.ioType = cIoType_VerifyWrite;
+		pCommand->ioRequest.ioType = cIoType_Write;
 		pCommand->ioRequest.pDisk = pDisk;
 		pCommand->ioRequest.lbaRange = {
 			.startLba = sectorOffset,
 			.sectorCount = sectorCount,
 		};
+
+		void *pLbaData = Disk_GetLbaVerifyDataAddr(pDisk, sectorOffset);
+		memcpy((void *)(pCommand->ioRequest.verifyLbaData), pLbaData, sizeof(LbaData_t) * sectorCount);
+		for (uint64_t i = 0; i < sectorCount; i++)
+		{
+			pCommand->ioRequest.verifyLbaData[i].isStatistic = false;
+		}
+		memcpy
+
 
 		pCommand->ioRequest.buffer = bufferPool + commandId;
 		DebugPrint("CommandId: %d, buffer addr: %p", commandId, pCommand->ioRequest.buffer);

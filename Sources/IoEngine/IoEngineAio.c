@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 //  Include files:
 //-----------------------------------------------------------------------------
-#include "Type.h"
+#include "Global.h"
 #include "IoEngine.h"
 #include "CommonCommandPool.h"
 #include "Disk.h"

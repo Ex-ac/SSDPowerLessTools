@@ -6,7 +6,7 @@
 
 #include <pthread.h>
 
-#include "Type.h"
+#include "Global.h"
 #include "Debug.h"
 #include "SimpleStack.h"
 //-----------------------------------------------------------------------------

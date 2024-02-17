@@ -12,7 +12,7 @@ extern "C"
 #include <stdbool.h>
 #include <string.h>
 #include "Bit.h"
-#include "Type.h"
+#include "Global.h"
 #include "Debug.h"
 
 //-----------------------------------------------------------------------------

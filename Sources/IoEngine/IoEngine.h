@@ -23,7 +23,7 @@ extern "C" {
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "Type.h"
+#include "Global.h"
 
 //-----------------------------------------------------------------------------
 //  Constant definitions:
@@ -52,15 +52,7 @@ typedef struct IoEngine
 	struct RequestThreadContext *requestThreadContext;
 	struct CompletedThreadContext *completedThreadContext;
 	const struct EngineOperator *engineOperator;
-	// bool exit;
-	// sem_t requestQueueSemaphore,
-	// void *requestQueue;
-	// void *completedQueue;
-	// uint_t ioQueueDepth;
-	// IoEngineType_t ioQueueDepth;
-	// pthread_t submitThread;
-	// pthread_t completionThread;
-	
+
 } IoEngine_t;
 
 //-----------------------------------------------------------------------------

@@ -31,7 +31,14 @@
 //-----------------------------------------------------------------------------
 //  Private function proto-type definitions:
 //-----------------------------------------------------------------------------
+static void IoCommandCheck(const CommonCommand_t *pCommand);
 
+static void VerifyWritePrepareFunc(CommonCommand_t *pCommand);
+static void VerifyWriteCompletedFunc(CommonCommand_t *pCommand);
+
+
+static void VerifyReadPrepareFunc(CommonCommand_t *pCommand);
+static void VerifyReadCompletedFunc(CommonCommand_t *pCommand);
 
 //-----------------------------------------------------------------------------
 //  Data declaration: Private or Public
@@ -42,6 +49,16 @@ const LbaData_t cNoInitLbaData = {
 	.isStatistic = true,
 	.statue = cLbaStatue_NoInit,
 	.writeCount = 0x1FFFFFFF,
+};
+
+const CommonCommandPrepareAndCompletedFunc_t cVerifyWritePrepareAndCompletedFunc = {
+	.prepareFunc = VerifyWritePrepareFunc,
+	.completedFunc = VerifyWriteCompletedFunc,
+};
+
+const CommonCommandPrepareAndCompletedFunc_t cVerifyReadPrepareAndCompletedFunc = {
+	.prepareFunc = VerifyReadPrepareFunc,
+	.completedFunc = VerifyReadCompletedFunc,
 };
 
 //-----------------------------------------------------------------------------
@@ -57,7 +74,185 @@ const LbaData_t cNoInitLbaData = {
 //-----------------------------------------------------------------------------
 //  Private functions
 //-----------------------------------------------------------------------------
+static void IoCommandCheck(const CommonCommand_t *pCommand)
+{
+	ASSERT_DEBUG(pCommand->ioRequest.pDisk != NULL);
+	ASSERT_DEBUG(pCommand->ioRequest.buffer != NULL);
+	ASSERT_DEBUG(pCommand->ioRequest.lbaRange.sectorCount != 0);
+	ASSERT_DEBUG(pCommand->ioRequest.lbaRange.sectorCount < cMaxSectorInCommand);
+	ASSERT_DEBUG(pCommand->ioRequest.lbaRange.startLba + pCommand->ioRequest.lbaRange.sectorCount <= pCommand->ioRequest.pDisk->maxSectorCount);
+}
 
+
+static void VerifyWritePrepareFunc(CommonCommand_t *pCommand)
+{
+	ASSERT_DEBUG(pCommand != NULL);
+	ASSERT_DEBUG(pCommand->config.type == cCommandType_Io);
+	ASSERT_DEBUG(pCommand->ioRequest.ioType == cIoType_Write);
+
+	
+	Disk_t *pDisk = pCommand->ioRequest.pDisk;
+	uint64_t startLba = pCommand->ioRequest.lbaRange.startLba;
+	int sectorCount = pCommand->ioRequest.lbaRange.sectorCount;
+
+	LbaVerifyHeader_t verifyHeader;
+
+	LbaData_t *pLbaData = Disk_GetLbaVerifyDataAddr(pDisk, startLba);
+	memcpy((void *)(pCommand->ioRequest.verifyLbaData), (void *)(pLbaData), pCommand->ioRequest.lbaRange.sectorCount * sizeof(LbaData_t));
+
+	for (int sectorIndex = 0; sectorIndex < pCommand->ioRequest.lbaRange.sectorCount; ++sectorIndex)
+	{
+		// modify verify data
+		pLbaData[sectorIndex].isStatistic = false;
+
+		// update verify backup
+		pCommand->ioRequest.verifyLbaData[sectorIndex].isStatistic = true;
+		pCommand->ioRequest.verifyLbaData[sectorIndex].writeCount ++;
+
+		// init verify header
+		verifyHeader.lba = startLba + sectorIndex;
+		verifyHeader.verifyData = pCommand->ioRequest.verifyLbaData[sectorIndex].writeCount;
+		// init write buffer
+		memcpy(pCommand->ioRequest.buffer + cSectorSize * sectorIndex, &verifyHeader, sizeof(LbaVerifyHeader_t));
+	}
+
+}
+
+
+static void VerifyWriteCompletedFunc(CommonCommand_t *pCommand)
+{
+	ASSERT_DEBUG(pCommand != NULL);
+	ASSERT_DEBUG(pCommand->config.type == cCommandType_Io);
+	ASSERT_DEBUG(pCommand->ioRequest.ioType == cIoType_Write);
+
+	Disk_t *pDisk = pCommand->ioRequest.pDisk;
+	uint64_t startLba = pCommand->ioRequest.lbaRange.startLba;
+	int sectorCount = pCommand->ioRequest.lbaRange.sectorCount;
+
+	switch (pCommand->config.status)
+	{
+		// write command not submit to disk
+	case cCommandStatus_Abort:
+	{
+		LbaData_t *pLbaData = Disk_GetLbaVerifyDataAddr(pDisk, startLba);
+		for (int sectorIndex = 0; sectorIndex < pCommand->ioRequest.lbaRange.sectorCount; ++sectorIndex)
+		{
+			pLbaData[sectorIndex].isStatistic = true;
+		}
+	}
+	break;
+
+	// failed and timeout lba status is not statistic
+	case cCommandStatus_Failed:
+	case cCommandStatus_Timeout:
+		break;
+
+	// write completed lba status is statistic, write count update
+	case cCommandStatus_Success:
+	{
+		LbaData_t *pLbaData = Disk_GetLbaVerifyDataAddr(pDisk, startLba);
+		memcpy((void *)(pLbaData), (void *)(pCommand->ioRequest.verifyLbaData), pCommand->ioRequest.lbaRange.sectorCount * sizeof(LbaData_t));
+	}
+	break;
+
+	default:
+		ASSERT(false);
+	}
+}
+
+static void VerifyReadPrepareFunc(CommonCommand_t *pCommand)
+{
+	ASSERT_DEBUG(pCommand != NULL);
+	ASSERT_DEBUG(pCommand->config.type == cCommandType_Io);
+	ASSERT_DEBUG(pCommand->ioRequest.ioType == cIoType_Write);
+
+	Disk_t *pDisk = pCommand->ioRequest.pDisk;
+	uint64_t startLba = pCommand->ioRequest.lbaRange.startLba;
+	int sectorCount = pCommand->ioRequest.lbaRange.sectorCount;
+
+	LbaData_t *pLbaData = Disk_GetLbaVerifyDataAddr(pDisk, startLba);
+	memcpy((void *)(pCommand->ioRequest.verifyLbaData), (void *)(pLbaData), pCommand->ioRequest.lbaRange.sectorCount * sizeof(LbaData_t));
+}
+
+static void VerifyReadCompletedFunc(CommonCommand_t *pCommand)
+{
+	ASSERT_DEBUG(pCommand != NULL);
+	ASSERT_DEBUG(pCommand->config.type == cCommandType_Io);
+	ASSERT_DEBUG(pCommand->ioRequest.ioType == cIoType_Write);
+
+	Disk_t *pDisk = pCommand->ioRequest.pDisk;
+	uint64_t startLba = pCommand->ioRequest.lbaRange.startLba;
+	int sectorCount = pCommand->ioRequest.lbaRange.sectorCount;
+	const LbaVerifyHeader_t *pVerifyHeader;
+
+	LbaData_t *pLbaData = Disk_GetLbaVerifyDataAddr(pDisk, startLba);
+	bool isVerifyFailed =  false;
+
+	for (int sectorIndex = 0; sectorIndex < pCommand->ioRequest.lbaRange.sectorCount; ++sectorIndex)
+	{
+		pVerifyHeader = (LbaVerifyHeader_t *)(pCommand->ioRequest.buffer + cSectorSize * sectorIndex);
+		switch (pCommand->ioRequest.verifyLbaData[sectorIndex].statue)
+		{
+
+
+		case cLbaStatue_NoInit:
+			if ((pVerifyHeader->lba == startLba + sectorIndex) && (pVerifyHeader->verifyData <= cMaxVerifyCount))
+			{
+				pLbaData[sectorIndex].isStatistic = true;
+				pLbaData[sectorIndex].writeCount = pVerifyHeader->verifyData;
+				pLbaData[sectorIndex].statue = cLbaStatue_Valid;
+			}
+			else if (memcmp((void *)(pVerifyHeader), (void *)cZeroSector, cSectorSize) == 0)
+			{
+				pLbaData[sectorIndex].isStatistic = true;
+				pLbaData[sectorIndex].writeCount = 0;
+				pLbaData[sectorIndex].statue = cLbaStatue_Invalid;
+			}
+			break;
+
+		case cLbaStatue_Invalid:
+			if (pCommand->ioRequest.verifyLbaData[sectorIndex].isStatistic)
+			{
+				isVerifyFailed = memcpy((void *)(pVerifyHeader), (void *)cZeroSector, cSectorSize) != 0;
+			}
+			else
+			{
+				
+			}
+		break;
+
+		case cLbaStatue_Valid:
+		{
+			isVerifyFailed = pVerifyHeader->lba != startLba + sectorIndex;
+			if (!isVerifyFailed)
+			{
+				if (pCommand->ioRequest.verifyLbaData[sectorIndex].isStatistic)
+				{
+					isVerifyFailed = pVerifyHeader->verifyData == pVerifyHeader->verifyData;
+				}
+				else
+				{
+					pLbaData[sectorIndex].isStatistic = true;
+					pLbaData[sectorIndex].writeCount = pVerifyHeader->verifyData;
+				}
+			}
+		}
+
+			break;
+		
+		default:
+			ASSERT(false);
+			break;
+		}
+		if (isVerifyFailed)
+		{
+			// TODO: print detail
+			DebugPrint("verify failed sectorIndex: %d, lba: %d, writeCount: %d, statue: %d\n", sectorIndex, pVerifyHeader->lba, pVerifyHeader->verifyData, pLbaData[sectorIndex].statue);
+			pCommand->config.status = cCommandStatus_VerifyFailed;
+			isVerifyFailed = false;
+		}
+	}
+}
 
 //-----------------------------------------------------------------------------
 //  Public functions
@@ -237,6 +432,7 @@ void Disk_Destroy(Disk_t *pDisk)
 
 	free(pDisk);
 }
+
 
 
 

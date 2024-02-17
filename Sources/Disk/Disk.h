@@ -18,7 +18,7 @@ extern "C" {
 #include <stdbool.h>
 #include <limits.h>
 #include <pthread.h>
-#include "Type.h"
+#include "Global.h"
 
 
 //-----------------------------------------------------------------------------
@@ -51,7 +51,14 @@ typedef struct Disk
 } Disk_t;
 
 
+typedef struct LbaVerifyHeader
+{
+	uint64_t lba;
+	uint64_t verifyData;
+} LbaVerifyHeader_t;
 
+extern const CommonCommandPrepareAndCompletedFunc_t cVerifyWritePrepareAndCompletedFunc;
+extern const const CommonCommandPrepareAndCompletedFunc_t cVerifyReadPrepareAndCompletedFunc;
 //-----------------------------------------------------------------------------
 //  Public interface functions:
 //-----------------------------------------------------------------------------
@@ -93,4 +100,3 @@ bool Disk_Unlock(Disk_t *pDisk)
 #ifdef __cplusplus
 }
 #endif
-

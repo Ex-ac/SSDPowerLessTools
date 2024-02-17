@@ -27,7 +27,7 @@ extern "C" {
 #define MAX_COMMON_COMMAND_SIZE		(64 + cMaxSectorInCommand * sizeof(LbaData_t))
 #define cInvalidCommandId			__UINT32_MAX__
 #define cSectorSize					512
-
+#define cMaxVerifyCount				((0x01 << 29) - 1)
 
 //-----------------------------------------------------------------------------
 //  Macros definitions:
@@ -48,11 +48,12 @@ extern "C" {
 //  Data type definitions: typedef, struct or class
 //-----------------------------------------------------------------------------
 struct Disk;
+struct CommonCommand;
 
 
 typedef enum LbaStatue
 {
-	cLbaStatue_NoInit = 0,		// mean's this lba not be initialized
+	cLbaStatue_NoInit = 0,		// mean's this lba not be initialized, not write by io engine
 	cLbaStatue_Invalid,			// mean's this lba be trim or formate
 	cLbaStatue_Valid,			// mean's this lba be this io engine write, the data pattern has certain pattern
 } LbaStatue_t;
@@ -90,20 +91,20 @@ typedef enum IoType
 {
 	cIoType_Write = 0,
 	cIoType_Read,
-	cIoType_VerifyWrite,
-	cIoType_VerifyRead,
 	cMaxNumberOfIOType,
 } IoType_t;
 
 
 typedef enum CommandStatus
 {
-	cCommandStatus_Success = 0,
-	cCommandStatus_Failed,
-	cCommandStatus_Abort,
-	cCommandStatus_Timeout,
-	cCommandStatus_Submit,
-	cCommandStatus_Invalid,
+	cCommandStatus_Invalid = 0,		// command is invalid, not init or check failed
+	cCommandStatus_Success,			// command complete with success
+	cCommandStatus_Failed,			// command completed with failed
+	cCommandStatus_Abort,			// command not submit to disk before submit
+	cCommandStatus_Timeout,			// command submit to disk, but will completed timeout
+	cCommandStatus_Submit,			// command had submit to disk
+	cCommandStatus_VerifyFailed,	// command completed and verify failed
+	
 } CommandStatus_t;
 
 typedef struct IoRequest
@@ -112,7 +113,7 @@ typedef struct IoRequest
 	IoType_t ioType;
 	LbaRange_t lbaRange;
 	void *buffer;
-	LbaData_t lbaData[cMaxSectorInCommand];
+	LbaData_t verifyLbaData[cMaxSectorInCommand];
 } IoRequest_t;
 
 
@@ -136,10 +137,21 @@ typedef struct CommandTime
 	int timeoutMs;			// command timeout
 } CommandTime_t;
 
+
+typedef void (*CommonCommandGeneralizeFunc_t)(struct CommonCommand *pCommand);
+
+typedef struct CommonCommandPrepareAndCompletedFunc
+{
+	CommonCommandGeneralizeFunc_t prepareFunc;
+	CommonCommandGeneralizeFunc_t completedFunc;
+} CommonCommandPrepareAndCompletedFunc_t;
+
+
 typedef struct CommonCommand
 {
 	CommandCommandConfig_t config;
 	CommandTime_t time;
+	const CommonCommandPrepareAndCompletedFunc_t *pFunc;
 	union
 	{
 		uint8_t all[MAX_COMMON_COMMAND_SIZE];

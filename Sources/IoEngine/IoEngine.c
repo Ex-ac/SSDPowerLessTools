@@ -357,47 +357,33 @@ static bool RequestThread_CommandExecute(RequestThreadContext_t *pContext, Comma
 	CommonCommand_t *pCommand = CommonCommandPool_GetCommand(commandId);
 	ASSERT_DEBUG(pCommand->config.type == cCommandType_Io);
 	ASSERT_DEBUG(pCommand->config.status == cCommandStatus_Success);
-	ASSERT_DEBUG(pCommand->ioRequest.pDisk != NULL);
-	ASSERT_DEBUG(pCommand->ioRequest.buffer != NULL);
-	ASSERT_DEBUG(pCommand->ioRequest.lbaRange.sectorCount != 0);
-	ASSERT_DEBUG(pCommand->ioRequest.lbaRange.sectorCount < cMaxSectorInCommand);
-	ASSERT_DEBUG(pCommand->ioRequest.lbaRange.startLba + pCommand->ioRequest.lbaRange.sectorCount <= pCommand->ioRequest.pDisk->maxSectorCount);
+	
+	ASSERT_DEBUG(pCommand->ioRequest.ioType == cIoType_Read || pCommand->ioRequest.ioType == cIoType_Write);
 
 	Disk_t *pDisk = pCommand->ioRequest.pDisk;
 	pCommand->time.submitTime = time(NULL);
 
-	uint64_t startLba = pCommand->ioRequest.lbaRange.startLba;
-	memcpy((void *)(pCommand->ioRequest.lbaData), Disk_GetLbaVerifyDataAddr(pDisk, startLba), pCommand->ioRequest.lbaRange.sectorCount);
+	// uint64_t startLba = pCommand->ioRequest.lbaRange.startLba;
+	// void *pLbaDataAddr = Disk_GetLbaDataAddr(pDisk, startLba);
+	// memcpy((void *)(pCommand->ioRequest.lbaData), pLbaDataAddr, pCommand->ioRequest.lbaRange.sectorCount * sizeof(LbaData_t));
 
-	switch (pCommand->ioRequest.ioType)
+	// if (pCommand->ioRequest.ioType == cIoType_Write)
+	// {
+	// 	for (int sectorIndex = 0;  sectorIndex < pCommand->ioRequest.lbaRange.sectorCount; ++sectorIndex)
+	// 	{
+	// 		pCommand->ioRequest.lbaData[sectorIndex].isStatistic = true;
+	// 	}
+	// 	memcpy(pLbaDataAddr, (void *)(pCommand->ioRequest.lbaData), pCommand->ioRequest.lbaRange.sectorCount * sizeof(LbaData_t));
+	// }
+
+	pCommand->config.status = cCommandStatus_Submit;
+	if (pCommand->pFunc != NULL)
 	{
-
-	case cIoType_VerifyWrite:
-	case cIoType_Write:
-		for (int sectorIndex = 0;  sectorIndex < pCommand->ioRequest.lbaRange.sectorCount; ++sectorIndex)
-		{
-			pCommand->ioRequest.lbaData[sectorIndex].isStatistic = false;
-			pCommand
-			// pCommand.
-
-		}
-
-
-
-	case cIoType_VerifyRead:
-	case cIoType_Read:
-
-
-		// pDisk->verifyFileHandler
-		pCommand->config.status = cCommandStatus_Submit;
-		
-		ret = pEngineOperator->ioOperator[pCommand->ioRequest.ioType](pCommand);
-		break;
-
-	default:
-		ASSERT_DEBUG(0);
-		break;
+		pCommand->pFunc->prepareFunc(pCommand);
 	}
+
+	ret = pEngineOperator->ioOperator[pCommand->ioRequest.ioType](pCommand);
+
 
 	// add to wait queue
 	while (PushToWaitQueue(pContext->owner->completedThreadContext, commandId) == false)
@@ -697,6 +683,12 @@ static void *CompletedThread_Processor(void *param)
 			{
 				DebugPrint("Completed: %d %d", pItem->commandId, pCommand->config.status);
 				pContext->completedCount ++;
+
+				if (pCommand->pFunc != NULL)
+				{
+					pCommand->pFunc->completedFunc(pCommand);
+				}
+
 				// move to completed queue
 				while (CommandIdFifo_Push(&pContext->completedQueue, pItem->commandId) == false)
 				{
