@@ -351,24 +351,46 @@ static bool RequestThread_CommandExecute(RequestThreadContext_t *pContext, Comma
 {
 	bool ret = false;
 	const EngineOperator_t *pEngineOperator = pContext->owner->engineOperator;
+
 	ASSERT(pEngineOperator != NULL);
 
 	CommonCommand_t *pCommand = CommonCommandPool_GetCommand(commandId);
 	ASSERT_DEBUG(pCommand->config.type == cCommandType_Io);
-	ASSERT_DEBUG(pCommand->config.status == cCommandStatus_Submit);
+	ASSERT_DEBUG(pCommand->config.status == cCommandStatus_Success);
 	ASSERT_DEBUG(pCommand->ioRequest.pDisk != NULL);
 	ASSERT_DEBUG(pCommand->ioRequest.buffer != NULL);
 	ASSERT_DEBUG(pCommand->ioRequest.lbaRange.sectorCount != 0);
-	ASSERT_DEBUG(pCommand->ioRequest.lbaRange.startLba + pCommand->ioRequest.lbaRange.sectorCount <= pCommand->ioRequest.pDisk.maxSectorCount);
+	ASSERT_DEBUG(pCommand->ioRequest.lbaRange.sectorCount < cMaxSectorInCommand);
+	ASSERT_DEBUG(pCommand->ioRequest.lbaRange.startLba + pCommand->ioRequest.lbaRange.sectorCount <= pCommand->ioRequest.pDisk->maxSectorCount);
 
+	Disk_t *pDisk = pCommand->ioRequest.pDisk;
 	pCommand->time.submitTime = time(NULL);
+
+	uint64_t startLba = pCommand->ioRequest.lbaRange.startLba;
+	memcpy((void *)(pCommand->ioRequest.lbaData), Disk_GetLbaVerifyDataAddr(pDisk, startLba), pCommand->ioRequest.lbaRange.sectorCount);
 
 	switch (pCommand->ioRequest.ioType)
 	{
 
-	case cIoType_Read:
+	case cIoType_VerifyWrite:
 	case cIoType_Write:
+		for (int sectorIndex = 0;  sectorIndex < pCommand->ioRequest.lbaRange.sectorCount; ++sectorIndex)
+		{
+			pCommand->ioRequest.lbaData[sectorIndex].isStatistic = false;
+			pCommand
+			// pCommand.
+
+		}
+
+
+
+	case cIoType_VerifyRead:
+	case cIoType_Read:
+
+
+		// pDisk->verifyFileHandler
 		pCommand->config.status = cCommandStatus_Submit;
+		
 		ret = pEngineOperator->ioOperator[pCommand->ioRequest.ioType](pCommand);
 		break;
 

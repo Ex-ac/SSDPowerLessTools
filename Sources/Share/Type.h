@@ -23,9 +23,11 @@ extern "C" {
 //-----------------------------------------------------------------------------
 //  Constant definitions:
 //-----------------------------------------------------------------------------
-#define MAX_COMMON_COMMAND_SIZE		0x40
+#define cMaxSectorInCommand			512
+#define MAX_COMMON_COMMAND_SIZE		(64 + cMaxSectorInCommand * sizeof(LbaData_t))
 #define cInvalidCommandId			__UINT32_MAX__
 #define cSectorSize					512
+
 
 //-----------------------------------------------------------------------------
 //  Macros definitions:
@@ -47,6 +49,24 @@ extern "C" {
 //-----------------------------------------------------------------------------
 struct Disk;
 
+
+typedef enum LbaStatue
+{
+	cLbaStatue_NoInit = 0,		// mean's this lba not be initialized
+	cLbaStatue_Invalid,			// mean's this lba be trim or formate
+	cLbaStatue_Valid,			// mean's this lba be this io engine write, the data pattern has certain pattern
+} LbaStatue_t;
+
+typedef union LbaData
+{
+	uint32_t all;
+	struct
+	{
+		bool isStatistic		: 1;		// mean's lba modify command send but not completed	
+		LbaStatue_t statue		: 2;		// lba state
+		uint32_t writeCount		: 29;		// this lba write count, using lba write count as verify data, when write the new lba buffer will be fill with lba + writeCount + 1, when write completed, it will be set as writeCount + 1. when read completed writeCount used to verify data.
+	};
+} LbaData_t;
 
 typedef unsigned int uint_t;
 typedef unsigned int CommandId_t;
@@ -70,6 +90,8 @@ typedef enum IoType
 {
 	cIoType_Write = 0,
 	cIoType_Read,
+	cIoType_VerifyWrite,
+	cIoType_VerifyRead,
 	cMaxNumberOfIOType,
 } IoType_t;
 
@@ -90,6 +112,7 @@ typedef struct IoRequest
 	IoType_t ioType;
 	LbaRange_t lbaRange;
 	void *buffer;
+	LbaData_t lbaData[cMaxSectorInCommand];
 } IoRequest_t;
 
 

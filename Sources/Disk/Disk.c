@@ -166,6 +166,7 @@ Disk_t *Disk_Create(const char *filePath, const char *verifyFilePath, uint64_t m
 		Disk_VerifyFileDeInit(pDisk);
 	}
 	
+	pthread_mutex_init(&pDisk->mutex, NULL);
 
 	fprintf(stdout, "Disk create success\n");
 
